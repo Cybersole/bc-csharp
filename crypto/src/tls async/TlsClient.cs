@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace Org.BouncyCastle.Tls
+namespace Org.BouncyCastle.Tls.Async
 {
     public interface TlsClient
         : TlsPeer

@@ -158,7 +158,7 @@ namespace Org.BouncyCastle.Tls
         private readonly int version;
         private readonly string name;
 
-        private ProtocolVersion(int v, string name)
+        public ProtocolVersion(int v, string name)
         {
             this.version = v & 0xFFFF;
             this.name = name;

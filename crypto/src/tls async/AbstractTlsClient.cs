@@ -6,7 +6,7 @@ using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Tls.Crypto;
 using Org.BouncyCastle.Utilities;
 
-namespace Org.BouncyCastle.Tls
+namespace Org.BouncyCastle.Tls.Async
 {
     /// <summary>Base class for a TLS client.</summary>
     public abstract class AbstractTlsClient

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0;netstandard2.0;net461</TargetFrameworks>
+    <TargetFrameworks>net6.0;</TargetFrameworks>
     <RootNamespace>Org.BouncyCastle</RootNamespace>
     <AssemblyOriginatorKeyFile>..\..\BouncyCastle.NET.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
@@ -25,6 +25,7 @@
 	<PublishRepositoryUrl>true</PublishRepositoryUrl>
     <Title>BouncyCastle.NET Cryptography</Title>
     <Configurations>Debug;Release;Publish</Configurations>
+	<ApiCompatGenerateSuppressionFile>true</ApiCompatGenerateSuppressionFile>
   </PropertyGroup>
 
   <!-- CI systems other than GitLab might need different conditions -->
