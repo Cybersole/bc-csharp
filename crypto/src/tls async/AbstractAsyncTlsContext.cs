@@ -55,7 +55,7 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         /// <exception cref="IOException"/>
-        internal void HandshakeBeginning(TlsPeer peer)
+        internal void HandshakeBeginning(AsyncTlsPeer peer)
         {
             lock (this)
             {
@@ -70,7 +70,7 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         /// <exception cref="IOException"/>
-        internal void HandshakeComplete(TlsPeer peer, TlsSession session)
+        internal void HandshakeComplete(AsyncTlsPeer peer, TlsSession session)
         {
             lock (this)
             {
@@ -177,9 +177,9 @@ namespace Org.BouncyCastle.Tls.Async
             SecurityParameters securityParameters = SecurityParameters;
 
             if (ChannelBinding.tls_exporter == channelBinding)
-                return ExportKeyingMaterial("EXPORTER-Channel-Binding", TlsUtilities.EmptyBytes, 32);
+                return ExportKeyingMaterial("EXPORTER-Channel-Binding", AsyncTlsUtilities.EmptyBytes, 32);
 
-            if (TlsUtilities.IsTlsV13(securityParameters.NegotiatedVersion))
+            if (AsyncTlsUtilities.IsTlsV13(securityParameters.NegotiatedVersion))
                 return null;
 
             switch (channelBinding)
@@ -188,7 +188,7 @@ namespace Org.BouncyCastle.Tls.Async
             {
                 byte[] tlsServerEndPoint = securityParameters.TlsServerEndPoint;
 
-                return TlsUtilities.IsNullOrEmpty(tlsServerEndPoint) ? null : Arrays.Clone(tlsServerEndPoint);
+                return AsyncTlsUtilities.IsNullOrEmpty(tlsServerEndPoint) ? null : Arrays.Clone(tlsServerEndPoint);
             }
 
             case ChannelBinding.tls_unique:
@@ -236,15 +236,15 @@ namespace Org.BouncyCastle.Tls.Async
                 throw new InvalidOperationException("Export of key material requires extended_master_secret");
             }
 
-            if (TlsUtilities.IsTlsV13(sp.NegotiatedVersion))
+            if (AsyncTlsUtilities.IsTlsV13(sp.NegotiatedVersion))
             {
                 return ExportKeyingMaterial13(CheckExportSecret(sp.ExporterMasterSecret), sp.PrfCryptoHashAlgorithm,
                     asciiLabel, context, length);
             }
 
-            byte[] seed = TlsUtilities.CalculateExporterSeed(sp, context);
+            byte[] seed = AsyncTlsUtilities.CalculateExporterSeed(sp, context);
 
-            return TlsUtilities.Prf(sp, CheckExportSecret(sp.MasterSecret), asciiLabel, seed, length).Extract();
+            return AsyncTlsUtilities.Prf(sp, CheckExportSecret(sp.MasterSecret), asciiLabel, seed, length).Extract();
         }
 
         protected virtual byte[] ExportKeyingMaterial13(TlsSecret secret, int cryptoHashAlgorithm, string asciiLabel,
@@ -252,9 +252,9 @@ namespace Org.BouncyCastle.Tls.Async
         {
             if (null == context)
             {
-                context = TlsUtilities.EmptyBytes;
+                context = AsyncTlsUtilities.EmptyBytes;
             }
-            else if (!TlsUtilities.IsValidUint16(context.Length))
+            else if (!AsyncTlsUtilities.IsValidUint16(context.Length))
             {
                 throw new ArgumentException("must have length less than 2^16 (or be null)", "context");
             }
@@ -262,7 +262,7 @@ namespace Org.BouncyCastle.Tls.Async
             TlsHash exporterHash = Crypto.CreateHash(cryptoHashAlgorithm);
             byte[] emptyTranscriptHash = exporterHash.CalculateHash();
 
-            TlsSecret exporterSecret = TlsUtilities.DeriveSecret(SecurityParameters, secret, asciiLabel,
+            TlsSecret exporterSecret = AsyncTlsUtilities.DeriveSecret(SecurityParameters, secret, asciiLabel,
                 emptyTranscriptHash);
 
             byte[] exporterContext = emptyTranscriptHash;

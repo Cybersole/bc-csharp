@@ -9,8 +9,8 @@ using Org.BouncyCastle.Utilities;
 namespace Org.BouncyCastle.Tls.Async
 {
     /// <summary>Base class for a TLS client.</summary>
-    public abstract class AbstractTlsClient
-        : AbstractTlsPeer, TlsClient
+    public abstract class AbstractAsyncTlsClient
+        : AbstractAsyncTlsPeer, AsyncTlsClient
     {
         protected TlsClientContext m_context;
         protected ProtocolVersion[] m_protocolVersions;
@@ -20,7 +20,7 @@ namespace Org.BouncyCastle.Tls.Async
         protected IList<SignatureAndHashAlgorithm> m_supportedSignatureAlgorithms;
         protected IList<SignatureAndHashAlgorithm> m_supportedSignatureAlgorithmsCert;
 
-        protected AbstractTlsClient(TlsCrypto crypto)
+        protected AbstractAsyncTlsClient(TlsCrypto crypto)
             : base(crypto)
         {
         }
@@ -55,14 +55,14 @@ namespace Org.BouncyCastle.Tls.Async
 
         protected virtual IList<int> GetNamedGroupRoles()
         {
-            var namedGroupRoles = TlsUtilities.GetNamedGroupRoles(GetCipherSuites());
+            var namedGroupRoles = AsyncTlsUtilities.GetNamedGroupRoles(GetCipherSuites());
             var sigAlgs = m_supportedSignatureAlgorithms;
             var sigAlgsCert = m_supportedSignatureAlgorithmsCert;
 
-            if ((null == sigAlgs || TlsUtilities.ContainsAnySignatureAlgorithm(sigAlgs, SignatureAlgorithm.ecdsa)) ||
-                (null != sigAlgsCert && TlsUtilities.ContainsAnySignatureAlgorithm(sigAlgsCert, SignatureAlgorithm.ecdsa)))
+            if ((null == sigAlgs || AsyncTlsUtilities.ContainsAnySignatureAlgorithm(sigAlgs, SignatureAlgorithm.ecdsa)) ||
+                (null != sigAlgsCert && AsyncTlsUtilities.ContainsAnySignatureAlgorithm(sigAlgsCert, SignatureAlgorithm.ecdsa)))
             {
-                TlsUtilities.AddToSet(namedGroupRoles, NamedGroupRole.ecdsa);
+                AsyncTlsUtilities.AddToSet(namedGroupRoles, NamedGroupRole.ecdsa);
             }
 
             return namedGroupRoles;
@@ -72,7 +72,7 @@ namespace Org.BouncyCastle.Tls.Async
         protected virtual void CheckForUnexpectedServerExtension(IDictionary<int, byte[]> serverExtensions,
             int extensionType)
         {
-            byte[] extensionData = TlsUtilities.GetExtensionData(serverExtensions, extensionType);
+            byte[] extensionData = AsyncTlsUtilities.GetExtensionData(serverExtensions, extensionType);
             if (extensionData != null && !AllowUnexpectedServerExtension(extensionType, extensionData))
                 throw new TlsFatalAlert(AlertDescription.illegal_parameter);
         }
@@ -148,20 +148,20 @@ namespace Org.BouncyCastle.Tls.Async
 
             if (namedGroupRoles.Contains(NamedGroupRole.ecdh))
             {
-                TlsUtilities.AddIfSupported(supportedGroups, crypto,
+                AsyncTlsUtilities.AddIfSupported(supportedGroups, crypto,
                     new int[]{ NamedGroup.x25519, NamedGroup.x448 });
             }
 
             if (namedGroupRoles.Contains(NamedGroupRole.ecdh) ||
                 namedGroupRoles.Contains(NamedGroupRole.ecdsa))
             {
-                TlsUtilities.AddIfSupported(supportedGroups, crypto,
+                AsyncTlsUtilities.AddIfSupported(supportedGroups, crypto,
                     new int[]{ NamedGroup.secp256r1, NamedGroup.secp384r1 });
             }
 
             if (namedGroupRoles.Contains(NamedGroupRole.dh))
             {
-                TlsUtilities.AddIfSupported(supportedGroups, crypto,
+                AsyncTlsUtilities.AddIfSupported(supportedGroups, crypto,
                     new int[]{ NamedGroup.ffdhe2048, NamedGroup.ffdhe3072, NamedGroup.ffdhe4096 });
             }
 
@@ -170,7 +170,7 @@ namespace Org.BouncyCastle.Tls.Async
 
         protected virtual IList<SignatureAndHashAlgorithm> GetSupportedSignatureAlgorithms()
         {
-            return TlsUtilities.GetDefaultSupportedSignatureAlgorithms(m_context);
+            return AsyncTlsUtilities.GetDefaultSupportedSignatureAlgorithms(m_context);
         }
 
         protected virtual IList<SignatureAndHashAlgorithm> GetSupportedSignatureAlgorithmsCert()
@@ -254,7 +254,7 @@ namespace Org.BouncyCastle.Tls.Async
                 for (int i = 0; i < supportedVersions.Length; ++i)
                 {
                     var supportedVersion = supportedVersions[i];
-                    if (TlsUtilities.IsTlsV13(supportedVersion))
+                    if (AsyncTlsUtilities.IsTlsV13(supportedVersion))
                     {
                         offeringTlsV13Plus = true;
                     }
@@ -318,7 +318,7 @@ namespace Org.BouncyCastle.Tls.Async
              * RFC 5246 7.4.1.4.1. Note: this extension is not meaningful for TLS versions prior to 1.2.
              * Clients MUST NOT offer it if they are offering prior versions.
              */
-            if (TlsUtilities.IsSignatureAlgorithmsExtensionAllowed(clientVersion))
+            if (AsyncTlsUtilities.IsSignatureAlgorithmsExtensionAllowed(clientVersion))
             {
                 var supportedSigAlgs = GetSupportedSignatureAlgorithms();
                 if (null != supportedSigAlgs && supportedSigAlgs.Count > 0)
@@ -364,7 +364,7 @@ namespace Org.BouncyCastle.Tls.Async
                  */
                 short[] clientCertTypes = GetAllowedClientCertificateTypes();
                 if (clientCertTypes != null &&
-                    TlsUtilities.ContainsNot(clientCertTypes, 0, clientCertTypes.Length, CertificateType.X509))
+                    AsyncTlsUtilities.ContainsNot(clientCertTypes, 0, clientCertTypes.Length, CertificateType.X509))
                 {
                     TlsExtensionsUtilities.AddClientCertificateTypeExtensionClient(clientExtensions, clientCertTypes);
                 }
@@ -377,7 +377,7 @@ namespace Org.BouncyCastle.Tls.Async
                  */
                 short[] serverCertTypes = GetAllowedServerCertificateTypes();
                 if (serverCertTypes != null &&
-                    TlsUtilities.ContainsNot(serverCertTypes, 0, serverCertTypes.Length, CertificateType.X509))
+                    AsyncTlsUtilities.ContainsNot(serverCertTypes, 0, serverCertTypes.Length, CertificateType.X509))
                 {
                     TlsExtensionsUtilities.AddServerCertificateTypeExtensionClient(clientExtensions, serverCertTypes);
                 }
@@ -412,12 +412,12 @@ namespace Org.BouncyCastle.Tls.Async
                 return null;
 
             if (m_supportedGroups.Contains(NamedGroup.x25519))
-                return TlsUtilities.VectorOfOne(NamedGroup.x25519);
+                return AsyncTlsUtilities.VectorOfOne(NamedGroup.x25519);
 
             if (m_supportedGroups.Contains(NamedGroup.secp256r1))
-                return TlsUtilities.VectorOfOne(NamedGroup.secp256r1);
+                return AsyncTlsUtilities.VectorOfOne(NamedGroup.secp256r1);
 
-            return TlsUtilities.VectorOfOne(m_supportedGroups[0]);
+            return AsyncTlsUtilities.VectorOfOne(m_supportedGroups[0]);
         }
 
         public virtual bool ShouldUseCompatibilityMode()
@@ -454,7 +454,7 @@ namespace Org.BouncyCastle.Tls.Async
                 return;
 
             SecurityParameters securityParameters = m_context.SecurityParameters;
-            bool isTlsV13 = TlsUtilities.IsTlsV13(securityParameters.NegotiatedVersion);
+            bool isTlsV13 = AsyncTlsUtilities.IsTlsV13(securityParameters.NegotiatedVersion);
 
             if (isTlsV13)
             {

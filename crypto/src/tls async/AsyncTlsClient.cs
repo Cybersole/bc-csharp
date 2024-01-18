@@ -4,8 +4,8 @@ using System.IO;
 
 namespace Org.BouncyCastle.Tls.Async
 {
-    public interface TlsClient
-        : TlsPeer
+    public interface AsyncTlsClient
+        : AsyncTlsPeer
     {
         void Init(TlsClientContext context);
 

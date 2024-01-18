@@ -4,10 +4,10 @@ using Org.BouncyCastle.Tls.Crypto;
 
 namespace Org.BouncyCastle.Tls.Async
 {
-    internal class TlsClientContextImpl
+    internal class AsyncTlsClientContextImpl
         : AbstractTlsContext, TlsClientContext
     {
-        internal TlsClientContextImpl(TlsCrypto crypto)
+        internal AsyncTlsClientContextImpl(TlsCrypto crypto)
             : base(crypto, ConnectionEnd.client)
         {
         }

@@ -12,14 +12,14 @@ using Org.BouncyCastle.Utilities;
 namespace Org.BouncyCastle.Tls.Async
 {
     /// <summary>An implementation of the TLS 1.0/1.1/1.2 record layer.</summary>
-    internal sealed class RecordStream
+    internal sealed class AsyncRecordStream
     {
         private const int DefaultPlaintextLimit = (1 << 14);
 
         private readonly Record m_inputRecord = new Record();
         private readonly SequenceNumber m_readSeqNo = new SequenceNumber(), m_writeSeqNo = new SequenceNumber();
 
-        private readonly TlsProtocol m_handler;
+        private readonly AsyncTlsProtocol m_handler;
         private readonly Stream m_input;
         private readonly Stream m_output;
 
@@ -34,7 +34,7 @@ namespace Org.BouncyCastle.Tls.Async
         private int m_ciphertextLimit = DefaultPlaintextLimit;
         private bool m_ignoreChangeCipherSpec = false;
 
-        internal RecordStream(TlsProtocol handler, Stream input, Stream output)
+        internal AsyncRecordStream(AsyncTlsProtocol handler, Stream input, Stream output)
         {
             this.m_handler = handler;
             this.m_input = input;
@@ -142,7 +142,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             //ProtocolVersion recordVersion = TlsUtilities.ReadVersion(recordHeader, RecordFormat.VersionOffset);
 
-            int length = TlsUtilities.ReadUint16(recordHeader, RecordFormat.LengthOffset);
+            int length = AsyncTlsUtilities.ReadUint16(recordHeader, RecordFormat.LengthOffset);
 
             CheckLength(length, m_ciphertextLimit, AlertDescription.record_overflow);
 
@@ -192,9 +192,9 @@ namespace Org.BouncyCastle.Tls.Async
 
             short recordType = CheckRecordType(m_inputRecord.m_buf, RecordFormat.TypeOffset);
 
-            ProtocolVersion recordVersion = TlsUtilities.ReadVersion(m_inputRecord.m_buf, RecordFormat.VersionOffset);
+            ProtocolVersion recordVersion = AsyncTlsUtilities.ReadVersion(m_inputRecord.m_buf, RecordFormat.VersionOffset);
 
-            int length = TlsUtilities.ReadUint16(m_inputRecord.m_buf, RecordFormat.LengthOffset);
+            int length = AsyncTlsUtilities.ReadUint16(m_inputRecord.m_buf, RecordFormat.LengthOffset);
 
             CheckLength(length, m_ciphertextLimit, AlertDescription.record_overflow);
 
@@ -272,11 +272,11 @@ namespace Org.BouncyCastle.Tls.Async
                 RecordFormat.FragmentOffset, plaintext.Span);
 
             int ciphertextLength = encoded.len - RecordFormat.FragmentOffset;
-            TlsUtilities.CheckUint16(ciphertextLength);
+            AsyncTlsUtilities.CheckUint16(ciphertextLength);
 
-            TlsUtilities.WriteUint8(encoded.recordType, encoded.buf, encoded.off + RecordFormat.TypeOffset);
-            TlsUtilities.WriteVersion(recordVersion, encoded.buf, encoded.off + RecordFormat.VersionOffset);
-            TlsUtilities.WriteUint16(ciphertextLength, encoded.buf, encoded.off + RecordFormat.LengthOffset);
+            AsyncTlsUtilities.WriteUint8(encoded.recordType, encoded.buf, encoded.off + RecordFormat.TypeOffset);
+            AsyncTlsUtilities.WriteVersion(recordVersion, encoded.buf, encoded.off + RecordFormat.VersionOffset);
+            AsyncTlsUtilities.WriteUint16(ciphertextLength, encoded.buf, encoded.off + RecordFormat.LengthOffset);
 
             await m_output.WriteAsync(encoded.buf.AsMemory(encoded.off, encoded.len));
 
@@ -331,7 +331,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         private short CheckRecordType(byte[] buf, int off)
         {
-            short recordType = TlsUtilities.ReadUint8(buf, off);
+            short recordType = AsyncTlsUtilities.ReadUint8(buf, off);
 
             if (null != m_readCipherDeferred && recordType == ContentType.application_data)
             {

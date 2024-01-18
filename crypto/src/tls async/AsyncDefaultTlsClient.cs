@@ -4,8 +4,8 @@ using Org.BouncyCastle.Tls.Crypto;
 
 namespace Org.BouncyCastle.Tls.Async
 {
-    public abstract class DefaultTlsClient
-        : AbstractTlsClient
+    public abstract class AsyncDefaultTlsClient
+        : AbstractAsyncTlsClient
     {
         private static readonly int[] DefaultCipherSuites = new int[]
         {
@@ -37,14 +37,14 @@ namespace Org.BouncyCastle.Tls.Async
             CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA,
         };
 
-        public DefaultTlsClient(TlsCrypto crypto)
+        public AsyncDefaultTlsClient(TlsCrypto crypto)
             : base(crypto)
         {
         }
 
         protected override int[] GetSupportedCipherSuites()
         {
-            return TlsUtilities.GetSupportedCipherSuites(Crypto, DefaultCipherSuites);
+            return AsyncTlsUtilities.GetSupportedCipherSuites(Crypto, DefaultCipherSuites);
         }
     }
 }

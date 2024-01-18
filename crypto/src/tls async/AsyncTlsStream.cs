@@ -8,12 +8,12 @@ using Org.BouncyCastle.Utilities.IO;
 
 namespace Org.BouncyCastle.Tls.Async
 {
-    internal class TlsStream
+    internal class AsyncTlsStream
         : Stream
     {
-        private readonly TlsProtocol m_handler;
+        private readonly AsyncTlsProtocol m_handler;
 
-        internal TlsStream(TlsProtocol handler)
+        internal AsyncTlsStream(AsyncTlsProtocol handler)
         {
             m_handler = handler;
         }

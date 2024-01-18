@@ -9,8 +9,8 @@ using Org.BouncyCastle.Utilities.IO;
 
 namespace Org.BouncyCastle.Tls.Async
 {
-    public abstract class TlsProtocol
-        : TlsCloseable
+    public abstract class AsyncTlsProtocol
+        : AsyncTlsCloseable
     {
         /*
          * Connection States.
@@ -122,14 +122,14 @@ namespace Org.BouncyCastle.Tls.Async
         private readonly ByteQueue m_handshakeQueue = new ByteQueue(0);
         //private readonly ByteQueue m_heartbeatQueue = new ByteQueue(0);
 
-        internal readonly RecordStream m_recordStream;
+        internal readonly AsyncRecordStream m_recordStream;
         internal readonly object m_recordWriteLock = new object();
 
         private int m_maxHandshakeMessageSize = -1;
 
         internal TlsHandshakeHash m_handshakeHash;
 
-        private TlsStream m_tlsStream = null;
+        private AsyncTlsStream m_tlsStream = null;
 
         private SemaphoreSlim _semaphore = new(1);
 
@@ -157,9 +157,9 @@ namespace Org.BouncyCastle.Tls.Async
         protected bool m_receivedChangeCipherSpec = false;
         protected bool m_expectSessionTicket = false;
 
-        public TlsProtocol(Stream stream)
+        public AsyncTlsProtocol(Stream stream)
         {       
-            this.m_recordStream = new RecordStream(this, stream, stream);
+            this.m_recordStream = new AsyncRecordStream(this, stream, stream);
         }
 
         /// <exception cref="IOException"/>
@@ -181,7 +181,7 @@ namespace Org.BouncyCastle.Tls.Async
 
         internal abstract AbstractTlsContext ContextAdmin { get; }
 
-        protected abstract TlsPeer Peer { get; }
+        protected abstract AsyncTlsPeer Peer { get; }
 
         /// <exception cref="IOException"/>
         protected virtual async Task HandleAlertMessageAsync(short alertLevel, short alertDescription)
@@ -255,7 +255,7 @@ namespace Org.BouncyCastle.Tls.Async
 
                 CloseConnection();
 
-                TlsUtilities.NotifyConnectionClosed(Peer);
+                AsyncTlsUtilities.NotifyConnectionClosed(Peer);
             }
         }
 
@@ -294,7 +294,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             CloseConnection();
 
-            TlsUtilities.NotifyConnectionClosed(Peer);
+            AsyncTlsUtilities.NotifyConnectionClosed(Peer);
         }
 
         /// <exception cref="IOException"/>
@@ -339,7 +339,7 @@ namespace Org.BouncyCastle.Tls.Async
         protected virtual Task BeginHandshakeAsync()
         {
             AbstractTlsContext context = ContextAdmin;
-            TlsPeer peer = Peer;
+            AsyncTlsPeer peer = Peer;
 
             this.m_maxHandshakeMessageSize = System.Math.Max(1024, peer.GetMaxHandshakeMessageSize());
 
@@ -408,12 +408,12 @@ namespace Org.BouncyCastle.Tls.Async
 
                 ProtocolVersion negotiatedVersion = securityParameters.NegotiatedVersion;
 
-                this.m_appDataSplitEnabled = !TlsUtilities.IsTlsV11(negotiatedVersion);
+                this.m_appDataSplitEnabled = !AsyncTlsUtilities.IsTlsV11(negotiatedVersion);
                 this.m_appDataReady = true;
 
-                this.m_keyUpdateEnabled = TlsUtilities.IsTlsV13(negotiatedVersion);
+                this.m_keyUpdateEnabled = AsyncTlsUtilities.IsTlsV13(negotiatedVersion);
 
-                this.m_tlsStream = new TlsStream(this);
+                this.m_tlsStream = new AsyncTlsStream(this);
 
                 if (m_sessionParameters == null)
                 {
@@ -432,7 +432,7 @@ namespace Org.BouncyCastle.Tls.Async
                         .SetServerExtensions(m_serverExtensions)
                         .Build();
 
-                    this.m_tlsSession = TlsUtilities.ImportSession(securityParameters.SessionID, m_sessionParameters);
+                    this.m_tlsSession = AsyncTlsUtilities.ImportSession(securityParameters.SessionID, m_sessionParameters);
                 }
                 else
                 {
@@ -555,7 +555,7 @@ namespace Org.BouncyCastle.Tls.Async
                 default:
                 {
                     ProtocolVersion negotiatedVersion = Context.ServerVersion;
-                    if (null != negotiatedVersion && TlsUtilities.IsTlsV13(negotiatedVersion))
+                    if (null != negotiatedVersion && AsyncTlsUtilities.IsTlsV13(negotiatedVersion))
                         break;
 
                     CheckReceivedChangeCipherSpec(HandshakeType.finished == type);
@@ -580,7 +580,7 @@ namespace Org.BouncyCastle.Tls.Async
                 case HandshakeType.new_session_ticket:
                 {
                     ProtocolVersion negotiatedVersion = Context.ServerVersion;
-                    if (null != negotiatedVersion && !TlsUtilities.IsTlsV13(negotiatedVersion))
+                    if (null != negotiatedVersion && !AsyncTlsUtilities.IsTlsV13(negotiatedVersion))
                     {
                         buf.UpdateHash(m_handshakeHash);
                     }
@@ -644,7 +644,7 @@ namespace Org.BouncyCastle.Tls.Async
         private void ProcessChangeCipherSpec(byte[] buf, int off, int len)
         {
             ProtocolVersion negotiatedVersion = Context.ServerVersion;
-            if (null == negotiatedVersion || TlsUtilities.IsTlsV13(negotiatedVersion))
+            if (null == negotiatedVersion || AsyncTlsUtilities.IsTlsV13(negotiatedVersion))
             {
                 // See RFC 8446 D.4.
                 throw new TlsFatalAlert(AlertDescription.unexpected_message);
@@ -652,7 +652,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             for (int i = 0; i < len; ++i)
             {
-                short message = TlsUtilities.ReadUint8(buf, off + i);
+                short message = AsyncTlsUtilities.ReadUint8(buf, off + i);
 
                 if (message != ChangeCipherSpec.change_cipher_spec)
                     throw new TlsFatalAlert(AlertDescription.decode_error);
@@ -894,12 +894,12 @@ namespace Org.BouncyCastle.Tls.Async
                             case ADS_MODE_0_N_FIRSTONLY:
                                 {
                                     this.m_appDataSplitEnabled = false;
-                                    await SafeWriteRecordAsync(ContentType.application_data, TlsUtilities.EmptyBytes, 0, 0);
+                                    await SafeWriteRecordAsync(ContentType.application_data, AsyncTlsUtilities.EmptyBytes, 0, 0);
                                     break;
                                 }
                             case ADS_MODE_0_N:
                                 {
-                                    await SafeWriteRecordAsync(ContentType.application_data, TlsUtilities.EmptyBytes, 0, 0);
+                                    await SafeWriteRecordAsync(ContentType.application_data, AsyncTlsUtilities.EmptyBytes, 0, 0);
                                     break;
                                 }
                             case ADS_MODE_1_Nsub1:
@@ -962,7 +962,7 @@ namespace Org.BouncyCastle.Tls.Async
             if (len < 4)
                 throw new TlsFatalAlert(AlertDescription.internal_error);
 
-            short type = TlsUtilities.ReadUint8(buf, off);
+            short type = AsyncTlsUtilities.ReadUint8(buf, off);
             switch (type)
             {
             /*
@@ -978,7 +978,7 @@ namespace Org.BouncyCastle.Tls.Async
             case HandshakeType.new_session_ticket:
             {
                 ProtocolVersion negotiatedVersion = Context.ServerVersion;
-                if (null != negotiatedVersion && !TlsUtilities.IsTlsV13(negotiatedVersion))
+                if (null != negotiatedVersion && !AsyncTlsUtilities.IsTlsV13(negotiatedVersion))
                 {
                     m_handshakeHash.Update(buf, off, len);
                 }
@@ -1045,14 +1045,14 @@ namespace Org.BouncyCastle.Tls.Async
                 if (isEms)
                     return false;
             }
-            else if (!TlsUtilities.IsExtendedMasterSecretOptional(sessionVersion))
+            else if (!AsyncTlsUtilities.IsExtendedMasterSecretOptional(sessionVersion))
             {
                 if (!isEms)
                     return false;
             }
 
             TlsCrypto crypto = Context.Crypto;
-            TlsSecret sessionMasterSecret = TlsUtilities.GetSessionMasterSecret(crypto, sessionParameters.MasterSecret);
+            TlsSecret sessionMasterSecret = AsyncTlsUtilities.GetSessionMasterSecret(crypto, sessionParameters.MasterSecret);
             if (null == sessionMasterSecret)
                 return false;
 
@@ -1098,11 +1098,11 @@ namespace Org.BouncyCastle.Tls.Async
             bool isServerContext = context.IsServer;
 
             Span<byte> verify_data = stackalloc byte[securityParameters.VerifyDataLength];
-            TlsUtilities.ReadFully(verify_data, buf);
+            AsyncTlsUtilities.ReadFully(verify_data, buf);
 
             AssertEmpty(buf);
 
-            byte[] expected_verify_data = TlsUtilities.CalculateVerifyData(context, m_handshakeHash, !isServerContext);
+            byte[] expected_verify_data = AsyncTlsUtilities.CalculateVerifyData(context, m_handshakeHash, !isServerContext);
 
             /*
              * Compare both checksums.
@@ -1134,11 +1134,11 @@ namespace Org.BouncyCastle.Tls.Async
             bool isServerContext = context.IsServer;
 
             Span<byte> verify_data = stackalloc byte[securityParameters.VerifyDataLength];
-            TlsUtilities.ReadFully(verify_data, buf);
+            AsyncTlsUtilities.ReadFully(verify_data, buf);
 
             AssertEmpty(buf);
 
-            byte[] expected_verify_data = TlsUtilities.CalculateVerifyData(context, m_handshakeHash, !isServerContext);
+            byte[] expected_verify_data = AsyncTlsUtilities.CalculateVerifyData(context, m_handshakeHash, !isServerContext);
 
             /*
              * Compare both checksums.
@@ -1191,7 +1191,7 @@ namespace Org.BouncyCastle.Tls.Async
             if (!(m_appDataReady && m_keyUpdateEnabled))
                 throw new TlsFatalAlert(AlertDescription.unexpected_message);
 
-            short requestUpdate = TlsUtilities.ReadUint8(buf);
+            short requestUpdate = AsyncTlsUtilities.ReadUint8(buf);
 
             AssertEmpty(buf);
 
@@ -1200,7 +1200,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             bool updateRequested = (KeyUpdateRequest.update_requested == requestUpdate);
 
-            TlsUtilities.Update13TrafficSecretPeer(Context);
+            AsyncTlsUtilities.Update13TrafficSecretPeer(Context);
             m_recordStream.NotifyKeyUpdateReceived();
 
             //this.m_keyUpdatePendingReceive &= updateRequested;
@@ -1227,7 +1227,7 @@ namespace Org.BouncyCastle.Tls.Async
             }
             else
             {
-                HandshakeMessageOutput message = new HandshakeMessageOutput(HandshakeType.certificate);
+                AsyncHandshakeMessageOutput message = new AsyncHandshakeMessageOutput(HandshakeType.certificate);
                 certificate.Encode(context, message, endPointHash);
                 await message.SendAsync(this);
             }
@@ -1246,7 +1246,7 @@ namespace Org.BouncyCastle.Tls.Async
             if (null != securityParameters.LocalCertificate)
                 throw new TlsFatalAlert(AlertDescription.internal_error);
 
-            HandshakeMessageOutput message = new HandshakeMessageOutput(HandshakeType.certificate);
+            AsyncHandshakeMessageOutput message = new AsyncHandshakeMessageOutput(HandshakeType.certificate);
             certificate.Encode(context, message, null);
             await message.SendAsync(this);
 
@@ -1256,7 +1256,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         protected virtual Task Send13CertificateVerifyMessageAsync(DigitallySigned certificateVerify)
         {
-            HandshakeMessageOutput message = new HandshakeMessageOutput(HandshakeType.certificate_verify);
+            AsyncHandshakeMessageOutput message = new AsyncHandshakeMessageOutput(HandshakeType.certificate_verify);
             certificateVerify.Encode(message);
             return message.SendAsync(this);
         }
@@ -1282,7 +1282,7 @@ namespace Org.BouncyCastle.Tls.Async
             SecurityParameters securityParameters = context.SecurityParameters;
             bool isServerContext = context.IsServer;
 
-            byte[] verify_data = TlsUtilities.CalculateVerifyData(context, m_handshakeHash, isServerContext);
+            byte[] verify_data = AsyncTlsUtilities.CalculateVerifyData(context, m_handshakeHash, isServerContext);
 
             securityParameters.m_localVerifyData = verify_data;
 
@@ -1294,7 +1294,7 @@ namespace Org.BouncyCastle.Tls.Async
                 }
             }
 
-            await HandshakeMessageOutput.Send(this, HandshakeType.finished, verify_data);
+            await AsyncHandshakeMessageOutput.Send(this, HandshakeType.finished, verify_data);
         }
 
         /// <exception cref="IOException"/>
@@ -1304,12 +1304,12 @@ namespace Org.BouncyCastle.Tls.Async
             SecurityParameters securityParameters = context.SecurityParameters;
             bool isServerContext = context.IsServer;
 
-            byte[] verify_data = TlsUtilities.CalculateVerifyData(context, m_handshakeHash, isServerContext);
+            byte[] verify_data = AsyncTlsUtilities.CalculateVerifyData(context, m_handshakeHash, isServerContext);
 
             securityParameters.m_localVerifyData = verify_data;
             securityParameters.m_tlsUnique = null;
 
-            await HandshakeMessageOutput.Send(this, HandshakeType.finished, verify_data);
+            await AsyncHandshakeMessageOutput.Send(this, HandshakeType.finished, verify_data);
         }
 
         /// <exception cref="IOException"/>
@@ -1324,9 +1324,9 @@ namespace Org.BouncyCastle.Tls.Async
                 ? KeyUpdateRequest.update_requested
                 : KeyUpdateRequest.update_not_requested;
 
-            await HandshakeMessageOutput.Send(this, HandshakeType.key_update, TlsUtilities.EncodeUint8(requestUpdate));
+            await AsyncHandshakeMessageOutput.Send(this, HandshakeType.key_update, AsyncTlsUtilities.EncodeUint8(requestUpdate));
 
-            TlsUtilities.Update13TrafficSecretLocal(Context);
+            AsyncTlsUtilities.Update13TrafficSecretLocal(Context);
             m_recordStream.NotifyKeyUpdateSent();
 
             //this.m_keyUpdatePendingReceive |= updateRequested;
@@ -1336,7 +1336,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         protected virtual async Task SendSupplementalDataMessageAsync(IList<SupplementalDataEntry> supplementalData)
         {
-            HandshakeMessageOutput message = new HandshakeMessageOutput(HandshakeType.supplemental_data);
+            AsyncHandshakeMessageOutput message = new AsyncHandshakeMessageOutput(HandshakeType.supplemental_data);
             WriteSupplementalData(message, supplementalData);
             await message.SendAsync(this);
         }
@@ -1391,7 +1391,7 @@ namespace Org.BouncyCastle.Tls.Async
         protected virtual short ProcessMaxFragmentLengthExtension(IDictionary<int, byte[]> clientExtensions,
             IDictionary<int, byte[]> serverExtensions, short alertDescription)
         {
-            return TlsUtilities.ProcessMaxFragmentLengthExtension(clientExtensions, serverExtensions, alertDescription);
+            return AsyncTlsUtilities.ProcessMaxFragmentLengthExtension(clientExtensions, serverExtensions, alertDescription);
         }
 
         /// <exception cref="IOException"/>
@@ -1400,7 +1400,7 @@ namespace Org.BouncyCastle.Tls.Async
             /*
              * RFC 5746 4.5 SSLv3 clients [..] SHOULD use a fatal handshake_failure alert.
              */
-            if (TlsUtilities.IsSsl(Context))
+            if (AsyncTlsUtilities.IsSsl(Context))
                 throw new TlsFatalAlert(AlertDescription.handshake_failure);
 
             await RaiseAlertWarningAsync(AlertDescription.no_renegotiation, "Renegotiation not supported");
@@ -1421,7 +1421,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             if (useGmtUnixTime)
             {
-                TlsUtilities.WriteGmtUnixTime(result, 0);
+                AsyncTlsUtilities.WriteGmtUnixTime(result, 0);
             }
 
             return result;
@@ -1430,7 +1430,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         internal static byte[] CreateRenegotiationInfo(byte[] renegotiated_connection)
         {
-            return TlsUtilities.EncodeOpaque8(renegotiated_connection);
+            return AsyncTlsUtilities.EncodeOpaque8(renegotiated_connection);
         }
 
         /// <exception cref="IOException"/>
@@ -1442,7 +1442,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             try
             {
-                context.SecurityParameters.m_masterSecret = TlsUtilities.CalculateMasterSecret(context,
+                context.SecurityParameters.m_masterSecret = AsyncTlsUtilities.CalculateMasterSecret(context,
                     preMasterSecret);
             }
             finally
@@ -1461,7 +1461,7 @@ namespace Org.BouncyCastle.Tls.Async
             if (input.Position >= input.Length)
                 return null;
 
-            byte[] extBytes = TlsUtilities.ReadOpaque16(input);
+            byte[] extBytes = AsyncTlsUtilities.ReadOpaque16(input);
 
             AssertEmpty(input);
 
@@ -1480,8 +1480,8 @@ namespace Org.BouncyCastle.Tls.Async
 
                 do
                 {
-                    int extension_type = TlsUtilities.ReadUint16(buf);
-                    byte[] extension_data = TlsUtilities.ReadOpaque16(buf);
+                    int extension_type = AsyncTlsUtilities.ReadUint16(buf);
+                    byte[] extension_data = AsyncTlsUtilities.ReadOpaque16(buf);
 
                     /*
                      * RFC 3546 2.3 There MUST NOT be more than one extension of the same type.
@@ -1510,15 +1510,15 @@ namespace Org.BouncyCastle.Tls.Async
 
                 do
                 {
-                    int extension_type = TlsUtilities.ReadUint16(buf);
+                    int extension_type = AsyncTlsUtilities.ReadUint16(buf);
 
-                    if (!TlsUtilities.IsPermittedExtensionType13(handshakeType, extension_type))
+                    if (!AsyncTlsUtilities.IsPermittedExtensionType13(handshakeType, extension_type))
                     {
                         throw new TlsFatalAlert(AlertDescription.illegal_parameter,
                             "Invalid extension: " + ExtensionType.GetText(extension_type));
                     }
 
-                    byte[] extension_data = TlsUtilities.ReadOpaque16(buf);
+                    byte[] extension_data = AsyncTlsUtilities.ReadOpaque16(buf);
 
                     /*
                      * RFC 3546 2.3 There MUST NOT be more than one extension of the same type.
@@ -1557,8 +1557,8 @@ namespace Org.BouncyCastle.Tls.Async
 
                 do
                 {
-                    extension_type = TlsUtilities.ReadUint16(buf);
-                    byte[] extension_data = TlsUtilities.ReadOpaque16(buf);
+                    extension_type = AsyncTlsUtilities.ReadUint16(buf);
+                    byte[] extension_data = AsyncTlsUtilities.ReadOpaque16(buf);
 
                     /*
                      * RFC 3546 2.3 There MUST NOT be more than one extension of the same type.
@@ -1584,7 +1584,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         internal static IList<SupplementalDataEntry> ReadSupplementalDataMessage(MemoryStream input)
         {
-            byte[] supp_data = TlsUtilities.ReadOpaque24(input, 1);
+            byte[] supp_data = AsyncTlsUtilities.ReadOpaque24(input, 1);
 
             AssertEmpty(input);
 
@@ -1594,8 +1594,8 @@ namespace Org.BouncyCastle.Tls.Async
 
             while (buf.Position < buf.Length)
             {
-                int supp_data_type = TlsUtilities.ReadUint16(buf);
-                byte[] data = TlsUtilities.ReadOpaque16(buf);
+                int supp_data_type = AsyncTlsUtilities.ReadUint16(buf);
+                byte[] data = AsyncTlsUtilities.ReadOpaque16(buf);
 
                 supplementalData.Add(new SupplementalDataEntry(supp_data_type, data));
             }
@@ -1618,8 +1618,8 @@ namespace Org.BouncyCastle.Tls.Async
             byte[] extBytes = WriteExtensionsData(extensions, bindersSize);
 
             int lengthWithBinders = extBytes.Length + bindersSize;
-            TlsUtilities.CheckUint16(lengthWithBinders);
-            TlsUtilities.WriteUint16(lengthWithBinders, output);
+            AsyncTlsUtilities.CheckUint16(lengthWithBinders);
+            AsyncTlsUtilities.WriteUint16(lengthWithBinders, output);
             output.Write(extBytes, 0, extBytes.Length);
         }
 
@@ -1661,12 +1661,12 @@ namespace Org.BouncyCastle.Tls.Async
         {
             if (extensions.TryGetValue(ExtensionType.pre_shared_key, out var extension_data))
             {
-                TlsUtilities.CheckUint16(ExtensionType.pre_shared_key);
-                TlsUtilities.WriteUint16(ExtensionType.pre_shared_key, buf);
+                AsyncTlsUtilities.CheckUint16(ExtensionType.pre_shared_key);
+                AsyncTlsUtilities.WriteUint16(ExtensionType.pre_shared_key, buf);
 
                 int lengthWithBinders = extension_data.Length + bindersSize;
-                TlsUtilities.CheckUint16(lengthWithBinders);
-                TlsUtilities.WriteUint16(lengthWithBinders, buf);
+                AsyncTlsUtilities.CheckUint16(lengthWithBinders);
+                AsyncTlsUtilities.WriteUint16(lengthWithBinders, buf);
                 buf.Write(extension_data, 0, extension_data.Length);
             }
         }
@@ -1687,9 +1687,9 @@ namespace Org.BouncyCastle.Tls.Async
 
                 if (selectEmpty == (extension_data.Length == 0))
                 {
-                    TlsUtilities.CheckUint16(extension_type);
-                    TlsUtilities.WriteUint16(extension_type, output);
-                    TlsUtilities.WriteOpaque16(extension_data, output);
+                    AsyncTlsUtilities.CheckUint16(extension_type);
+                    AsyncTlsUtilities.WriteUint16(extension_type, output);
+                    AsyncTlsUtilities.WriteOpaque16(extension_data, output);
                 }
             }
         }
@@ -1702,14 +1702,14 @@ namespace Org.BouncyCastle.Tls.Async
             foreach (SupplementalDataEntry entry in supplementalData)
             {
                 int supp_data_type = entry.DataType;
-                TlsUtilities.CheckUint16(supp_data_type);
-                TlsUtilities.WriteUint16(supp_data_type, buf);
-                TlsUtilities.WriteOpaque16(entry.Data, buf);
+                AsyncTlsUtilities.CheckUint16(supp_data_type);
+                AsyncTlsUtilities.WriteUint16(supp_data_type, buf);
+                AsyncTlsUtilities.WriteOpaque16(entry.Data, buf);
             }
 
             byte[] supp_data = buf.ToArray();
 
-            TlsUtilities.WriteOpaque24(supp_data, output);
+            AsyncTlsUtilities.WriteOpaque24(supp_data, output);
         }
     }
 }

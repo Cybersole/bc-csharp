@@ -10,11 +10,11 @@ using Org.BouncyCastle.Utilities.Zlib;
 
 namespace Org.BouncyCastle.Tls.Async
 {
-    public class TlsClientProtocol
-        : TlsProtocol
+    public class AsyncTlsClientProtocol
+        : AsyncTlsProtocol
     {
-        protected TlsClient m_tlsClient = null;
-        internal TlsClientContextImpl m_tlsClientContext = null;
+        protected AsyncTlsClient m_tlsClient = null;
+        internal AsyncTlsClientContextImpl m_tlsClientContext = null;
 
         protected IDictionary<int, TlsAgreement> m_clientAgreements = null;
         internal OfferedPsks.BindersConfig m_clientBinders = null;
@@ -27,7 +27,7 @@ namespace Org.BouncyCastle.Tls.Async
 
         /// <summary>Constructor for blocking mode.</summary>
         /// <param name="stream">The <see cref="Stream"/> of data to/from the server.</param>
-        public TlsClientProtocol(Stream stream)
+        public AsyncTlsClientProtocol(Stream stream)
             : base(stream)
         {
         }
@@ -35,11 +35,11 @@ namespace Org.BouncyCastle.Tls.Async
         /// <summary>Initiates a TLS handshake in the role of client.</summary>
         /// <remarks>
         /// In blocking mode, this will not return until the handshake is complete. In non-blocking mode, use
-        /// <see cref="TlsPeer.NotifyHandshakeComplete"/> to receive a callback when the handshake is complete.
+        /// <see cref="AsyncTlsPeer.NotifyHandshakeComplete"/> to receive a callback when the handshake is complete.
         /// </remarks>
-        /// <param name="tlsClient">The <see cref="TlsClient"/> to use for the handshake.</param>
+        /// <param name="tlsClient">The <see cref="AsyncTlsClient"/> to use for the handshake.</param>
         /// <exception cref="IOException">If in blocking mode and handshake was not successful.</exception>
-        public virtual async Task ConnectAsync(TlsClient tlsClient)
+        public virtual async Task ConnectAsync(AsyncTlsClient tlsClient)
         {
             if (tlsClient == null)
                 throw new ArgumentNullException("tlsClient");
@@ -47,7 +47,7 @@ namespace Org.BouncyCastle.Tls.Async
                 throw new InvalidOperationException("'Connect' can only be called once");
 
             this.m_tlsClient = tlsClient;
-            this.m_tlsClientContext = new TlsClientContextImpl(tlsClient.Crypto);
+            this.m_tlsClientContext = new AsyncTlsClientContextImpl(tlsClient.Crypto);
 
             tlsClient.Init(m_tlsClientContext);
             tlsClient.NotifyCloseHandle(this);
@@ -89,7 +89,7 @@ namespace Org.BouncyCastle.Tls.Async
             get { return m_tlsClientContext; }
         }
 
-        protected override TlsPeer Peer
+        protected override AsyncTlsPeer Peer
         {
             get { return m_tlsClient; }
         }
@@ -135,7 +135,7 @@ namespace Org.BouncyCastle.Tls.Async
                                         Skip13CertificateRequest();
                                     }
 
-                                    var algo = TlsUtilities.ReadUint16(buf);
+                                    var algo = AsyncTlsUtilities.ReadUint16(buf);
 
                                     buf.Position += 6;
 
@@ -227,7 +227,7 @@ namespace Org.BouncyCastle.Tls.Async
                                     buf.UpdateHash(m_handshakeHash);
                                     this.m_connectionState = CS_SERVER_FINISHED;
 
-                                    byte[] serverFinishedTranscriptHash = TlsUtilities.GetCurrentPrfHash(m_handshakeHash);
+                                    byte[] serverFinishedTranscriptHash = AsyncTlsUtilities.GetCurrentPrfHash(m_handshakeHash);
 
                                     // See RFC 8446 D.4.
                                     m_recordStream.SetIgnoreChangeCipherSpec(false);
@@ -240,7 +240,7 @@ namespace Org.BouncyCastle.Tls.Async
 
                                     if (null != m_certificateRequest)
                                     {
-                                        TlsCredentialedSigner clientCredentials = TlsUtilities.Establish13ClientCredentials(
+                                        TlsCredentialedSigner clientCredentials = AsyncTlsUtilities.Establish13ClientCredentials(
                                             m_authentication, m_certificateRequest);
 
                                         Certificate clientCertificate = null;
@@ -260,7 +260,7 @@ namespace Org.BouncyCastle.Tls.Async
 
                                         if (null != clientCredentials)
                                         {
-                                            DigitallySigned certificateVerify = TlsUtilities.Generate13CertificateVerify(
+                                            DigitallySigned certificateVerify = AsyncTlsUtilities.Generate13CertificateVerify(
                                                 m_tlsClientContext, clientCredentials, m_handshakeHash);
                                             await Send13CertificateVerifyMessageAsync(certificateVerify);
                                             this.m_connectionState = CS_CLIENT_CERTIFICATE_VERIFY;
@@ -270,7 +270,7 @@ namespace Org.BouncyCastle.Tls.Async
                                     await Send13FinishedMessageAsync();
                                     this.m_connectionState = CS_CLIENT_FINISHED;
 
-                                    TlsUtilities.Establish13PhaseApplication(m_tlsClientContext, serverFinishedTranscriptHash,
+                                    AsyncTlsUtilities.Establish13PhaseApplication(m_tlsClientContext, serverFinishedTranscriptHash,
                                         m_recordStream);
 
                                     m_recordStream.EnablePendingCipherWrite();
@@ -343,7 +343,7 @@ namespace Org.BouncyCastle.Tls.Async
             SecurityParameters securityParameters = m_tlsClientContext.SecurityParameters;
 
             if (m_connectionState > CS_CLIENT_HELLO
-                && TlsUtilities.IsTlsV13(securityParameters.NegotiatedVersion))
+                && AsyncTlsUtilities.IsTlsV13(securityParameters.NegotiatedVersion))
             {
                 if (securityParameters.IsResumedSession)
                     throw new TlsFatalAlert(AlertDescription.internal_error);
@@ -390,7 +390,7 @@ namespace Org.BouncyCastle.Tls.Async
                                      * NOTE: Certificate processing (including authentication) is delayed to allow for a
                                      * possible CertificateStatus message.
                                      */
-                                    m_authentication = TlsUtilities.ReceiveServerCertificate(m_tlsClientContext, m_tlsClient, buf,
+                                    m_authentication = AsyncTlsUtilities.ReceiveServerCertificate(m_tlsClientContext, m_tlsClient, buf,
                                         m_serverExtensions);
                                     break;
                                 }
@@ -464,7 +464,7 @@ namespace Org.BouncyCastle.Tls.Async
                                         Process13HelloRetryRequest(serverHello);
                                         m_handshakeHash.NotifyPrfDetermined();
                                         m_handshakeHash.SealHashAlgorithms();
-                                        TlsUtilities.AdjustTranscriptForRetry(m_handshakeHash);
+                                        AsyncTlsUtilities.AdjustTranscriptForRetry(m_handshakeHash);
                                         buf.UpdateHash(m_handshakeHash);
                                         this.m_connectionState = CS_SERVER_HELLO_RETRY_REQUEST;
 
@@ -475,14 +475,14 @@ namespace Org.BouncyCastle.Tls.Async
                                     {
                                         ProcessServerHello(serverHello);
                                         m_handshakeHash.NotifyPrfDetermined();
-                                        if (TlsUtilities.IsTlsV13(securityParameters.NegotiatedVersion))
+                                        if (AsyncTlsUtilities.IsTlsV13(securityParameters.NegotiatedVersion))
                                         {
                                             m_handshakeHash.SealHashAlgorithms();
                                         }
                                         buf.UpdateHash(m_handshakeHash);
                                         this.m_connectionState = CS_SERVER_HELLO;
 
-                                        if (TlsUtilities.IsTlsV13(securityParameters.NegotiatedVersion))
+                                        if (AsyncTlsUtilities.IsTlsV13(securityParameters.NegotiatedVersion))
                                         {
                                             await Process13ServerHelloCodaAsync(serverHello, false);
                                         }
@@ -550,7 +550,7 @@ namespace Org.BouncyCastle.Tls.Async
 
                                     if (m_certificateRequest != null)
                                     {
-                                        clientAuthCredentials = TlsUtilities.EstablishClientCredentials(m_authentication,
+                                        clientAuthCredentials = AsyncTlsUtilities.EstablishClientCredentials(m_authentication,
                                             m_certificateRequest);
                                         if (clientAuthCredentials != null)
                                         {
@@ -559,18 +559,18 @@ namespace Org.BouncyCastle.Tls.Async
                                             if (clientAuthCredentials is TlsCredentialedSigner)
                                             {
                                                 clientAuthSigner = (TlsCredentialedSigner)clientAuthCredentials;
-                                                clientAuthAlgorithm = TlsUtilities.GetSignatureAndHashAlgorithm(
+                                                clientAuthAlgorithm = AsyncTlsUtilities.GetSignatureAndHashAlgorithm(
                                                     securityParameters.NegotiatedVersion, clientAuthSigner);
                                                 clientAuthStreamSigner = clientAuthSigner.GetStreamSigner();
 
                                                 if (ProtocolVersion.TLSv12.Equals(securityParameters.NegotiatedVersion))
                                                 {
-                                                    TlsUtilities.VerifySupportedSignatureAlgorithm(securityParameters.ServerSigAlgs,
+                                                    AsyncTlsUtilities.VerifySupportedSignatureAlgorithm(securityParameters.ServerSigAlgs,
                                                         clientAuthAlgorithm, AlertDescription.internal_error);
 
                                                     if (clientAuthStreamSigner == null)
                                                     {
-                                                        TlsUtilities.TrackHashAlgorithmClient(m_handshakeHash, clientAuthAlgorithm);
+                                                        AsyncTlsUtilities.TrackHashAlgorithmClient(m_handshakeHash, clientAuthAlgorithm);
                                                     }
                                                 }
 
@@ -609,14 +609,14 @@ namespace Org.BouncyCastle.Tls.Async
                                     await SendClientKeyExchangeAsync();
                                     this.m_connectionState = CS_CLIENT_KEY_EXCHANGE;
 
-                                    bool isSsl = TlsUtilities.IsSsl(m_tlsClientContext);
+                                    bool isSsl = AsyncTlsUtilities.IsSsl(m_tlsClientContext);
                                     if (isSsl)
                                     {
                                         // NOTE: For SSLv3 (only), master_secret needed to calculate session hash
                                         EstablishMasterSecret(m_tlsClientContext, m_keyExchange);
                                     }
 
-                                    securityParameters.m_sessionHash = TlsUtilities.GetCurrentPrfHash(m_handshakeHash);
+                                    securityParameters.m_sessionHash = AsyncTlsUtilities.GetCurrentPrfHash(m_handshakeHash);
 
                                     if (!isSsl)
                                     {
@@ -624,11 +624,11 @@ namespace Org.BouncyCastle.Tls.Async
                                         EstablishMasterSecret(m_tlsClientContext, m_keyExchange);
                                     }
 
-                                    m_recordStream.SetPendingCipher(TlsUtilities.InitCipher(m_tlsClientContext));
+                                    m_recordStream.SetPendingCipher(AsyncTlsUtilities.InitCipher(m_tlsClientContext));
 
                                     if (clientAuthSigner != null)
                                     {
-                                        DigitallySigned certificateVerify = TlsUtilities.GenerateCertificateVerifyClient(
+                                        DigitallySigned certificateVerify = AsyncTlsUtilities.GenerateCertificateVerifyClient(
                                             m_tlsClientContext, clientAuthSigner, clientAuthAlgorithm, clientAuthStreamSigner,
                                             m_handshakeHash);
                                         await SendCertificateVerifyMessageAsync(certificateVerify);
@@ -699,7 +699,7 @@ namespace Org.BouncyCastle.Tls.Async
 
                                     ReceiveCertificateRequest(buf);
 
-                                    TlsUtilities.EstablishServerSigAlgs(securityParameters, m_certificateRequest);
+                                    AsyncTlsUtilities.EstablishServerSigAlgs(securityParameters, m_certificateRequest);
                                     break;
                                 }
                             default:
@@ -728,9 +728,9 @@ namespace Org.BouncyCastle.Tls.Async
                                      * RFC 5077 3.4. If the client receives a session ticket from the server, then it
                                      * discards any Session ID that was sent in the ServerHello.
                                      */
-                                    securityParameters.m_sessionID = TlsUtilities.EmptyBytes;
+                                    securityParameters.m_sessionID = AsyncTlsUtilities.EmptyBytes;
                                     InvalidateSession();
-                                    this.m_tlsSession = TlsUtilities.ImportSession(securityParameters.SessionID, null);
+                                    this.m_tlsSession = AsyncTlsUtilities.ImportSession(securityParameters.SessionID, null);
 
                                     ReceiveNewSessionTicket(buf);
                                     break;
@@ -777,7 +777,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         protected virtual void HandleServerCertificate()
         {
-            TlsUtilities.ProcessServerCertificate(m_tlsClientContext, m_certificateStatus, m_keyExchange,
+            AsyncTlsUtilities.ProcessServerCertificate(m_tlsClientContext, m_certificateStatus, m_keyExchange,
                 m_authentication, m_clientExtensions, m_serverExtensions);
         }
 
@@ -787,7 +787,7 @@ namespace Org.BouncyCastle.Tls.Async
             m_tlsClient.ProcessServerSupplementalData(serverSupplementalData);
             this.m_connectionState = CS_SERVER_SUPPLEMENTAL_DATA;
 
-            this.m_keyExchange = TlsUtilities.InitKeyExchangeClient(m_tlsClientContext, m_tlsClient);
+            this.m_keyExchange = AsyncTlsUtilities.InitKeyExchangeClient(m_tlsClientContext, m_tlsClient);
         }
 
         /// <exception cref="IOException"/>
@@ -811,7 +811,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             if (!ProtocolVersion.TLSv12.Equals(legacy_version) ||
                 !Arrays.AreEqual(m_clientHello.SessionID, legacy_session_id_echo) ||
-                !TlsUtilities.IsValidCipherSuiteSelection(m_clientHello.CipherSuites, cipherSuite))
+                !AsyncTlsUtilities.IsValidCipherSuiteSelection(m_clientHello.CipherSuites, cipherSuite))
             {
                 throw new TlsFatalAlert(AlertDescription.illegal_parameter);
             }
@@ -820,7 +820,7 @@ namespace Org.BouncyCastle.Tls.Async
             if (null == extensions)
                 throw new TlsFatalAlert(AlertDescription.illegal_parameter);
 
-            TlsUtilities.CheckExtensionData13(extensions, HandshakeType.hello_retry_request,
+            AsyncTlsUtilities.CheckExtensionData13(extensions, HandshakeType.hello_retry_request,
                 AlertDescription.illegal_parameter);
 
             {
@@ -835,7 +835,7 @@ namespace Org.BouncyCastle.Tls.Async
                     if (ExtensionType.cookie == extType)
                         continue;
 
-                    if (null == TlsUtilities.GetExtensionData(m_clientExtensions, extType))
+                    if (null == AsyncTlsUtilities.GetExtensionData(m_clientExtensions, extType))
                         throw new TlsFatalAlert(AlertDescription.unsupported_extension);
                 }
             }
@@ -846,7 +846,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             if (!ProtocolVersion.TLSv13.IsEqualOrEarlierVersionOf(server_version) ||
                 !ProtocolVersion.Contains(m_tlsClientContext.ClientSupportedVersions, server_version) ||
-                !TlsUtilities.IsValidVersionForCipherSuite(cipherSuite, server_version))
+                !AsyncTlsUtilities.IsValidVersionForCipherSuite(cipherSuite, server_version))
             {
                 throw new TlsFatalAlert(AlertDescription.illegal_parameter);
             }
@@ -871,7 +871,7 @@ namespace Org.BouncyCastle.Tls.Async
              */
             int selected_group = TlsExtensionsUtilities.GetKeyShareHelloRetryRequest(extensions);
 
-            if (!TlsUtilities.IsValidKeyShareSelection(server_version, securityParameters.ClientSupportedGroups,
+            if (!AsyncTlsUtilities.IsValidKeyShareSelection(server_version, securityParameters.ClientSupportedGroups,
                 m_clientAgreements, selected_group))
             {
                 throw new TlsFatalAlert(AlertDescription.illegal_parameter);
@@ -882,13 +882,13 @@ namespace Org.BouncyCastle.Tls.Async
 
 
             securityParameters.m_negotiatedVersion = server_version;
-            TlsUtilities.NegotiatedVersionTlsClient(m_tlsClientContext, m_tlsClient);
+            AsyncTlsUtilities.NegotiatedVersionTlsClient(m_tlsClientContext, m_tlsClient);
 
             securityParameters.m_resumedSession = false;
-            securityParameters.m_sessionID = TlsUtilities.EmptyBytes;
-            m_tlsClient.NotifySessionID(TlsUtilities.EmptyBytes);
+            securityParameters.m_sessionID = AsyncTlsUtilities.EmptyBytes;
+            m_tlsClient.NotifySessionID(AsyncTlsUtilities.EmptyBytes);
 
-            TlsUtilities.NegotiatedCipherSuite(securityParameters, cipherSuite);
+            AsyncTlsUtilities.NegotiatedCipherSuite(securityParameters, cipherSuite);
             m_tlsClient.NotifySelectedCipherSuite(cipherSuite);
 
             this.m_clientAgreements = null;
@@ -916,7 +916,7 @@ namespace Org.BouncyCastle.Tls.Async
             if (null == extensions)
                 throw new TlsFatalAlert(AlertDescription.illegal_parameter);
 
-            TlsUtilities.CheckExtensionData13(extensions, HandshakeType.server_hello,
+            AsyncTlsUtilities.CheckExtensionData13(extensions, HandshakeType.server_hello,
                 AlertDescription.illegal_parameter);
 
             if (afterHelloRetryRequest)
@@ -933,17 +933,17 @@ namespace Org.BouncyCastle.Tls.Async
             }
             else
             {
-                if (!TlsUtilities.IsValidCipherSuiteSelection(m_clientHello.CipherSuites, cipherSuite) ||
-                    !TlsUtilities.IsValidVersionForCipherSuite(cipherSuite, securityParameters.NegotiatedVersion))
+                if (!AsyncTlsUtilities.IsValidCipherSuiteSelection(m_clientHello.CipherSuites, cipherSuite) ||
+                    !AsyncTlsUtilities.IsValidVersionForCipherSuite(cipherSuite, securityParameters.NegotiatedVersion))
                 {
                     throw new TlsFatalAlert(AlertDescription.illegal_parameter);
                 }
 
                 securityParameters.m_resumedSession = false;
-                securityParameters.m_sessionID = TlsUtilities.EmptyBytes;
-                m_tlsClient.NotifySessionID(TlsUtilities.EmptyBytes);
+                securityParameters.m_sessionID = AsyncTlsUtilities.EmptyBytes;
+                m_tlsClient.NotifySessionID(AsyncTlsUtilities.EmptyBytes);
 
-                TlsUtilities.NegotiatedCipherSuite(securityParameters, cipherSuite);
+                AsyncTlsUtilities.NegotiatedCipherSuite(securityParameters, cipherSuite);
                 m_tlsClient.NotifySelectedCipherSuite(cipherSuite);
             }
 
@@ -1022,18 +1022,18 @@ namespace Org.BouncyCastle.Tls.Async
             this.m_clientAgreements = null;
             this.m_clientBinders = null;
 
-            TlsUtilities.Establish13PhaseSecrets(m_tlsClientContext, pskEarlySecret, sharedSecret);
+            AsyncTlsUtilities.Establish13PhaseSecrets(m_tlsClientContext, pskEarlySecret, sharedSecret);
 
             InvalidateSession();
-            this.m_tlsSession = TlsUtilities.ImportSession(securityParameters.SessionID, null);
+            this.m_tlsSession = AsyncTlsUtilities.ImportSession(securityParameters.SessionID, null);
         }
 
         /// <exception cref="IOException"/>
         protected virtual async Task Process13ServerHelloCodaAsync(ServerHello serverHello, bool afterHelloRetryRequest)
         {
-            byte[] serverHelloTranscriptHash = TlsUtilities.GetCurrentPrfHash(m_handshakeHash);
+            byte[] serverHelloTranscriptHash = AsyncTlsUtilities.GetCurrentPrfHash(m_handshakeHash);
 
-            TlsUtilities.Establish13PhaseHandshake(m_tlsClientContext, serverHelloTranscriptHash, m_recordStream);
+            AsyncTlsUtilities.Establish13PhaseHandshake(m_tlsClientContext, serverHelloTranscriptHash, m_recordStream);
 
             // See RFC 8446 D.4.
             if (!afterHelloRetryRequest)
@@ -1095,7 +1095,7 @@ namespace Org.BouncyCastle.Tls.Async
                 securityParameters.m_negotiatedVersion = server_version;
             }
 
-            TlsUtilities.NegotiatedVersionTlsClient(m_tlsClientContext, m_tlsClient);
+            AsyncTlsUtilities.NegotiatedVersionTlsClient(m_tlsClientContext, m_tlsClient);
 
             if (ProtocolVersion.TLSv13.IsEqualOrEarlierVersionOf(server_version))
             {
@@ -1113,7 +1113,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             if (!m_tlsClientContext.ClientVersion.Equals(server_version))
             {
-                TlsUtilities.CheckDowngradeMarker(server_version, securityParameters.ServerRandom);
+                AsyncTlsUtilities.CheckDowngradeMarker(server_version, securityParameters.ServerRandom);
             }
 
             {
@@ -1141,14 +1141,14 @@ namespace Org.BouncyCastle.Tls.Async
             {
                 int cipherSuite = serverHello.CipherSuite;
 
-                if (!TlsUtilities.IsValidCipherSuiteSelection(offeredCipherSuites, cipherSuite) ||
-                    !TlsUtilities.IsValidVersionForCipherSuite(cipherSuite, securityParameters.NegotiatedVersion))
+                if (!AsyncTlsUtilities.IsValidCipherSuiteSelection(offeredCipherSuites, cipherSuite) ||
+                    !AsyncTlsUtilities.IsValidVersionForCipherSuite(cipherSuite, securityParameters.NegotiatedVersion))
                 {
                     throw new TlsFatalAlert(AlertDescription.illegal_parameter,
                         "ServerHello selected invalid cipher suite");
                 }
 
-                TlsUtilities.NegotiatedCipherSuite(securityParameters, cipherSuite);
+                AsyncTlsUtilities.NegotiatedCipherSuite(securityParameters, cipherSuite);
                 m_tlsClient.NotifySelectedCipherSuite(cipherSuite);
             }
 
@@ -1181,7 +1181,7 @@ namespace Org.BouncyCastle.Tls.Async
                      * associated ClientHello, it MUST abort the handshake with an unsupported_extension
                      * fatal alert.
                      */
-                    if (null == TlsUtilities.GetExtensionData(m_clientExtensions, extType))
+                    if (null == AsyncTlsUtilities.GetExtensionData(m_clientExtensions, extType))
                         throw new TlsFatalAlert(AlertDescription.unsupported_extension);
 
                     /*
@@ -1199,7 +1199,7 @@ namespace Org.BouncyCastle.Tls.Async
                 }
             }
 
-            byte[] renegExtData = TlsUtilities.GetExtensionData(serverHelloExtensions, ExtensionType.renegotiation_info);
+            byte[] renegExtData = AsyncTlsUtilities.GetExtensionData(serverHelloExtensions, ExtensionType.renegotiation_info);
 
             // NOT renegotiating
             {
@@ -1231,7 +1231,7 @@ namespace Org.BouncyCastle.Tls.Async
                      */
                     securityParameters.m_secureRenegotiation = true;
 
-                    if (!Arrays.FixedTimeEquals(renegExtData, CreateRenegotiationInfo(TlsUtilities.EmptyBytes)))
+                    if (!Arrays.FixedTimeEquals(renegExtData, CreateRenegotiationInfo(AsyncTlsUtilities.EmptyBytes)))
                         throw new TlsFatalAlert(AlertDescription.handshake_failure);
                 }
             }
@@ -1247,7 +1247,7 @@ namespace Org.BouncyCastle.Tls.Async
                 {
                     negotiatedEms = TlsExtensionsUtilities.HasExtendedMasterSecretExtension(serverHelloExtensions);
 
-                    if (TlsUtilities.IsExtendedMasterSecretOptional(server_version))
+                    if (AsyncTlsUtilities.IsExtendedMasterSecretOptional(server_version))
                     {
                         if (!negotiatedEms &&
                             m_tlsClient.RequiresExtendedMasterSecret())
@@ -1305,13 +1305,13 @@ namespace Org.BouncyCastle.Tls.Async
                      */
                     bool serverSentEncryptThenMAC = TlsExtensionsUtilities.HasEncryptThenMacExtension(
                         sessionServerExtensions);
-                    if (serverSentEncryptThenMAC && !TlsUtilities.IsBlockCipherSuite(securityParameters.CipherSuite))
+                    if (serverSentEncryptThenMAC && !AsyncTlsUtilities.IsBlockCipherSuite(securityParameters.CipherSuite))
                         throw new TlsFatalAlert(AlertDescription.illegal_parameter);
 
                     securityParameters.m_encryptThenMac = serverSentEncryptThenMAC;
                 }
 
-                securityParameters.m_maxFragmentLength = TlsUtilities.ProcessMaxFragmentLengthExtension(
+                securityParameters.m_maxFragmentLength = AsyncTlsUtilities.ProcessMaxFragmentLengthExtension(
                     sessionClientExtensions, sessionServerExtensions, AlertDescription.illegal_parameter);
 
                 securityParameters.m_truncatedHmac = TlsExtensionsUtilities.HasTruncatedHmacExtension(
@@ -1320,23 +1320,23 @@ namespace Org.BouncyCastle.Tls.Async
                 if (!securityParameters.IsResumedSession)
                 {
                     // TODO[tls13] See RFC 8446 4.4.2.1
-                    if (TlsUtilities.HasExpectedEmptyExtensionData(sessionServerExtensions,
+                    if (AsyncTlsUtilities.HasExpectedEmptyExtensionData(sessionServerExtensions,
                         ExtensionType.status_request_v2, AlertDescription.illegal_parameter))
                     {
                         securityParameters.m_statusRequestVersion = 2;
                     }
-                    else if (TlsUtilities.HasExpectedEmptyExtensionData(sessionServerExtensions,
+                    else if (AsyncTlsUtilities.HasExpectedEmptyExtensionData(sessionServerExtensions,
                         ExtensionType.status_request, AlertDescription.illegal_parameter))
                     {
                         securityParameters.m_statusRequestVersion = 1;
                     }
 
-                    securityParameters.m_clientCertificateType = TlsUtilities.ProcessClientCertificateTypeExtension(
+                    securityParameters.m_clientCertificateType = AsyncTlsUtilities.ProcessClientCertificateTypeExtension(
                         sessionClientExtensions, sessionServerExtensions, AlertDescription.illegal_parameter);
-                    securityParameters.m_serverCertificateType = TlsUtilities.ProcessServerCertificateTypeExtension(
+                    securityParameters.m_serverCertificateType = AsyncTlsUtilities.ProcessServerCertificateTypeExtension(
                         sessionClientExtensions, sessionServerExtensions, AlertDescription.illegal_parameter);
 
-                    this.m_expectSessionTicket = TlsUtilities.HasExpectedEmptyExtensionData(sessionServerExtensions,
+                    this.m_expectSessionTicket = AsyncTlsUtilities.HasExpectedEmptyExtensionData(sessionServerExtensions,
                         ExtensionType.session_ticket, AlertDescription.illegal_parameter);
                 }
             }
@@ -1351,12 +1351,12 @@ namespace Org.BouncyCastle.Tls.Async
             if (securityParameters.IsResumedSession)
             {
                 securityParameters.m_masterSecret = m_sessionMasterSecret;
-                m_recordStream.SetPendingCipher(TlsUtilities.InitCipher(m_tlsClientContext));
+                m_recordStream.SetPendingCipher(AsyncTlsUtilities.InitCipher(m_tlsClientContext));
             }
             else
             {
                 InvalidateSession();
-                this.m_tlsSession = TlsUtilities.ImportSession(securityParameters.SessionID, null);
+                this.m_tlsSession = AsyncTlsUtilities.ImportSession(securityParameters.SessionID, null);
             }
         }
 
@@ -1379,18 +1379,18 @@ namespace Org.BouncyCastle.Tls.Async
 
             AssertEmpty(buf);
 
-            if (!certificateRequest.HasCertificateRequestContext(TlsUtilities.EmptyBytes))
+            if (!certificateRequest.HasCertificateRequestContext(AsyncTlsUtilities.EmptyBytes))
                 throw new TlsFatalAlert(AlertDescription.illegal_parameter);
 
             this.m_certificateRequest = certificateRequest;
 
-            TlsUtilities.EstablishServerSigAlgs(m_tlsClientContext.SecurityParameters, certificateRequest);
+            AsyncTlsUtilities.EstablishServerSigAlgs(m_tlsClientContext.SecurityParameters, certificateRequest);
         }
 
         /// <exception cref="IOException"/>
         protected virtual void Receive13EncryptedExtensions(MemoryStream buf)
         {
-            byte[] extBytes = TlsUtilities.ReadOpaque16(buf);
+            byte[] extBytes = AsyncTlsUtilities.ReadOpaque16(buf);
 
             AssertEmpty(buf);
 
@@ -1406,7 +1406,7 @@ namespace Org.BouncyCastle.Tls.Async
                  */
                 foreach (int extType in m_serverExtensions.Keys)
                 {
-                    if (null == TlsUtilities.GetExtensionData(m_clientExtensions, extType))
+                    if (null == AsyncTlsUtilities.GetExtensionData(m_clientExtensions, extType))
                         throw new TlsFatalAlert(AlertDescription.unsupported_extension);
                 }
             }
@@ -1428,7 +1428,7 @@ namespace Org.BouncyCastle.Tls.Async
                 sessionServerExtensions = m_sessionParameters.ReadServerExtensions();
             }
 
-            securityParameters.m_maxFragmentLength = TlsUtilities.ProcessMaxFragmentLengthExtension(
+            securityParameters.m_maxFragmentLength = AsyncTlsUtilities.ProcessMaxFragmentLengthExtension(
                 sessionClientExtensions, sessionServerExtensions, AlertDescription.illegal_parameter);
 
             securityParameters.m_encryptThenMac = false;
@@ -1444,9 +1444,9 @@ namespace Org.BouncyCastle.Tls.Async
                 securityParameters.m_statusRequestVersion = m_clientExtensions.ContainsKey(ExtensionType.status_request)
                     ? 1 : 0;
 
-                securityParameters.m_clientCertificateType = TlsUtilities.ProcessClientCertificateTypeExtension13(
+                securityParameters.m_clientCertificateType = AsyncTlsUtilities.ProcessClientCertificateTypeExtension13(
                     sessionClientExtensions, sessionServerExtensions, AlertDescription.illegal_parameter);
-                securityParameters.m_serverCertificateType = TlsUtilities.ProcessServerCertificateTypeExtension13(
+                securityParameters.m_serverCertificateType = AsyncTlsUtilities.ProcessServerCertificateTypeExtension13(
                     sessionClientExtensions, sessionServerExtensions, AlertDescription.illegal_parameter);
             }
 
@@ -1479,7 +1479,7 @@ namespace Org.BouncyCastle.Tls.Async
             if (m_selectedPsk13)
                 throw new TlsFatalAlert(AlertDescription.unexpected_message);
 
-            m_authentication = TlsUtilities.Receive13ServerCertificate(m_tlsClientContext, m_tlsClient, buf,
+            m_authentication = AsyncTlsUtilities.Receive13ServerCertificate(m_tlsClientContext, m_tlsClient, buf,
                 m_serverExtensions);
 
             // NOTE: In TLS 1.3 we don't have to wait for a possible CertificateStatus message.
@@ -1497,7 +1497,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             AssertEmpty(buf);
 
-            TlsUtilities.Verify13CertificateVerifyServer(m_tlsClientContext, m_handshakeHash, certificateVerify);
+            AsyncTlsUtilities.Verify13CertificateVerifyServer(m_tlsClientContext, m_handshakeHash, certificateVerify);
         }
 
         /// <exception cref="IOException"/>
@@ -1522,7 +1522,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             AssertEmpty(buf);
 
-            m_certificateRequest = TlsUtilities.ValidateCertificateRequest(certificateRequest, m_keyExchange);
+            m_certificateRequest = AsyncTlsUtilities.ValidateCertificateRequest(certificateRequest, m_keyExchange);
         }
 
         /// <exception cref="IOException"/>
@@ -1572,7 +1572,7 @@ namespace Org.BouncyCastle.Tls.Async
              */
             if (null != m_clientBinders)
             {
-                this.m_clientBinders = TlsUtilities.AddPreSharedKeyToClientHelloRetry(m_tlsClientContext,
+                this.m_clientBinders = AsyncTlsUtilities.AddPreSharedKeyToClientHelloRetry(m_tlsClientContext,
                     m_clientBinders, clientHelloExtensions);
                 if (null == m_clientBinders)
                 {
@@ -1592,7 +1592,7 @@ namespace Org.BouncyCastle.Tls.Async
              * - If a "key_share" extension was supplied in the HelloRetryRequest, replacing the list of shares
              * with a list containing a single KeyShareEntry from the indicated group
              */
-            this.m_clientAgreements = TlsUtilities.AddKeyShareToClientHelloRetry(m_tlsClientContext,
+            this.m_clientAgreements = AsyncTlsUtilities.AddKeyShareToClientHelloRetry(m_tlsClientContext,
                 clientHelloExtensions, m_retryGroup);
 
             /*
@@ -1617,7 +1617,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         protected virtual Task SendCertificateVerifyMessageAsync(DigitallySigned certificateVerify)
         {
-            HandshakeMessageOutput message = new HandshakeMessageOutput(HandshakeType.certificate_verify);
+            AsyncHandshakeMessageOutput message = new AsyncHandshakeMessageOutput(HandshakeType.certificate_verify);
             certificateVerify.Encode(message);
             return message.SendAsync(this);
         }
@@ -1676,13 +1676,13 @@ namespace Org.BouncyCastle.Tls.Async
 
             EstablishSession(sessionToResume);
 
-            byte[] legacy_session_id = TlsUtilities.GetSessionID(m_tlsSession);
+            byte[] legacy_session_id = AsyncTlsUtilities.GetSessionID(m_tlsSession);
 
             if (legacy_session_id.Length > 0)
             {
                 if (!Arrays.Contains(offeredCipherSuites, m_sessionParameters.CipherSuite))
                 {
-                    legacy_session_id = TlsUtilities.EmptyBytes;
+                    legacy_session_id = AsyncTlsUtilities.EmptyBytes;
                 }
             }
 
@@ -1693,25 +1693,25 @@ namespace Org.BouncyCastle.Tls.Async
 
                 if (!ProtocolVersion.Contains(supportedVersions, sessionVersion))
                 {
-                    legacy_session_id = TlsUtilities.EmptyBytes;
+                    legacy_session_id = AsyncTlsUtilities.EmptyBytes;
                 }
             }
 
-            if (legacy_session_id.Length > 0 && TlsUtilities.IsExtendedMasterSecretOptional(sessionVersion))
+            if (legacy_session_id.Length > 0 && AsyncTlsUtilities.IsExtendedMasterSecretOptional(sessionVersion))
             {
                 if (shouldUseEms)
                 {
                     if (!m_sessionParameters.IsExtendedMasterSecret &&
                         !m_tlsClient.AllowLegacyResumption())
                     {
-                        legacy_session_id = TlsUtilities.EmptyBytes;
+                        legacy_session_id = AsyncTlsUtilities.EmptyBytes;
                     }
                 }
                 else
                 {
                     if (m_sessionParameters.IsExtendedMasterSecret)
                     {
-                        legacy_session_id = TlsUtilities.EmptyBytes;
+                        legacy_session_id = AsyncTlsUtilities.EmptyBytes;
                     }
                 }
             }
@@ -1734,7 +1734,7 @@ namespace Org.BouncyCastle.Tls.Async
                  * RFC 8446 4.1.2. In compatibility mode [..], this field MUST be non-empty, so a client
                  * not offering a pre-TLS 1.3 session MUST generate a new 32-byte value.
                  */
-                if (legacy_session_id.Length < 1 && TlsUtilities.ShouldUseCompatibilityMode(m_tlsClient))
+                if (legacy_session_id.Length < 1 && AsyncTlsUtilities.ShouldUseCompatibilityMode(m_tlsClient))
                 {
                     legacy_session_id = m_tlsClientContext.NonceGenerator.GenerateNonce(32);
                 }
@@ -1745,22 +1745,22 @@ namespace Org.BouncyCastle.Tls.Async
             securityParameters.m_clientServerNames = TlsExtensionsUtilities.GetServerNameExtensionClient(
                 m_clientExtensions);
 
-            if (TlsUtilities.IsSignatureAlgorithmsExtensionAllowed(latestVersion))
+            if (AsyncTlsUtilities.IsSignatureAlgorithmsExtensionAllowed(latestVersion))
             {
-                TlsUtilities.EstablishClientSigAlgs(securityParameters, m_clientExtensions);
+                AsyncTlsUtilities.EstablishClientSigAlgs(securityParameters, m_clientExtensions);
             }
 
             securityParameters.m_clientSupportedGroups = TlsExtensionsUtilities.GetSupportedGroupsExtension(
                 m_clientExtensions);
 
-            this.m_clientBinders = TlsUtilities.AddPreSharedKeyToClientHello(m_tlsClientContext, m_tlsClient,
+            this.m_clientBinders = AsyncTlsUtilities.AddPreSharedKeyToClientHello(m_tlsClientContext, m_tlsClient,
                 m_clientExtensions, offeredCipherSuites);
 
             // TODO[tls13-psk] Perhaps don't add key_share if external PSK(s) offered and 'psk_dhe_ke' not offered  
-            this.m_clientAgreements = TlsUtilities.AddKeyShareToClientHello(m_tlsClientContext, m_tlsClient,
+            this.m_clientAgreements = AsyncTlsUtilities.AddKeyShareToClientHello(m_tlsClientContext, m_tlsClient,
                 m_clientExtensions);
 
-            if (shouldUseEms && TlsUtilities.IsExtendedMasterSecretOptional(supportedVersions))
+            if (shouldUseEms && AsyncTlsUtilities.IsExtendedMasterSecretOptional(supportedVersions))
             {
                 TlsExtensionsUtilities.AddExtendedMasterSecretExtension(this.m_clientExtensions);
             }
@@ -1780,7 +1780,7 @@ namespace Org.BouncyCastle.Tls.Async
                  * TLS_EMPTY_RENEGOTIATION_INFO_SCSV signaling cipher suite value in the ClientHello.
                  * Including both is NOT RECOMMENDED.
                  */
-                bool noRenegExt = (null == TlsUtilities.GetExtensionData(m_clientExtensions,
+                bool noRenegExt = (null == AsyncTlsUtilities.GetExtensionData(m_clientExtensions,
                     ExtensionType.renegotiation_info));
                 bool noRenegScsv = !Arrays.Contains(offeredCipherSuites, CipherSuite.TLS_EMPTY_RENEGOTIATION_INFO_SCSV);
 
@@ -1817,7 +1817,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         protected virtual Task SendClientHelloMessageAsync()
         {
-            HandshakeMessageOutput message = new HandshakeMessageOutput(HandshakeType.client_hello);
+            AsyncHandshakeMessageOutput message = new AsyncHandshakeMessageOutput(HandshakeType.client_hello);
             m_clientHello.Encode(m_tlsClientContext, message);
 
             message.PrepareClientHello(m_handshakeHash, m_clientHello.BindersSize);
@@ -1833,7 +1833,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         protected virtual Task SendClientKeyExchangeAsync()
         {
-            HandshakeMessageOutput message = new HandshakeMessageOutput(HandshakeType.client_key_exchange);
+            AsyncHandshakeMessageOutput message = new AsyncHandshakeMessageOutput(HandshakeType.client_key_exchange);
             m_keyExchange.GenerateClientKeyExchange(message);
             return message.SendAsync(this);
         }
@@ -1850,7 +1850,7 @@ namespace Org.BouncyCastle.Tls.Async
             if (!m_selectedPsk13)
                 throw new TlsFatalAlert(AlertDescription.unexpected_message);
 
-            this.m_authentication = TlsUtilities.Skip13ServerCertificate(m_tlsClientContext);
+            this.m_authentication = AsyncTlsUtilities.Skip13ServerCertificate(m_tlsClientContext);
         }
     }
 }

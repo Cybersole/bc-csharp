@@ -24,7 +24,7 @@ using Org.BouncyCastle.Utilities.IO;
 
 namespace Org.BouncyCastle.Tls.Async
 {
-    public abstract class TlsUtilities
+    public abstract class AsyncTlsUtilities
     {
         private static readonly byte[] DowngradeTlsV11 = Hex.DecodeStrict("444F574E47524400");
         private static readonly byte[] DowngradeTlsV12 = Hex.DecodeStrict("444F574E47524401");
@@ -1705,7 +1705,7 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         private static void Establish13TrafficSecrets(TlsContext context, byte[] transcriptHash, TlsSecret phaseSecret,
-            string clientLabel, string serverLabel, RecordStream recordStream)
+            string clientLabel, string serverLabel, AsyncRecordStream recordStream)
         {
             SecurityParameters securityParameters = context.SecurityParameters;
 
@@ -1724,7 +1724,7 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         internal static void Establish13PhaseApplication(TlsContext context, byte[] serverFinishedTranscriptHash,
-            RecordStream recordStream)
+            AsyncRecordStream recordStream)
         {
             SecurityParameters securityParameters = context.SecurityParameters;
             TlsSecret phaseSecret = securityParameters.MasterSecret;
@@ -1737,7 +1737,7 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         internal static void Establish13PhaseEarly(TlsContext context, byte[] clientHelloTranscriptHash,
-            RecordStream recordStream)
+            AsyncRecordStream recordStream)
         {
             SecurityParameters securityParameters = context.SecurityParameters;
             TlsSecret phaseSecret = securityParameters.EarlySecret;
@@ -1756,7 +1756,7 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         internal static void Establish13PhaseHandshake(TlsContext context, byte[] serverHelloTranscriptHash,
-            RecordStream recordStream)
+            AsyncRecordStream recordStream)
         {
             SecurityParameters securityParameters = context.SecurityParameters;
             TlsSecret phaseSecret = securityParameters.HandshakeSecret;
@@ -4253,7 +4253,7 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         /// <exception cref="IOException"/>
-        private static TlsKeyExchange CreateKeyExchangeClient(TlsClient client, int keyExchange)
+        private static TlsKeyExchange CreateKeyExchangeClient(AsyncTlsClient client, int keyExchange)
         {
             TlsKeyExchangeFactory factory = client.GetKeyExchangeFactory();
 
@@ -4369,7 +4369,7 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         /// <exception cref="IOException"/>
-        internal static TlsKeyExchange InitKeyExchangeClient(TlsClientContext clientContext, TlsClient client)
+        internal static TlsKeyExchange InitKeyExchangeClient(TlsClientContext clientContext, AsyncTlsClient client)
         {
             SecurityParameters securityParameters = clientContext.SecurityParameters;
             TlsKeyExchange keyExchange = CreateKeyExchangeClient(client, securityParameters.KeyExchangeAlgorithm);
@@ -4849,7 +4849,7 @@ namespace Org.BouncyCastle.Tls.Async
             Array.Copy(marker, 0, randomBlock, randomBlock.Length - marker.Length, marker.Length);
         }
 
-        internal static TlsAuthentication ReceiveServerCertificate(TlsClientContext clientContext, TlsClient client,
+        internal static TlsAuthentication ReceiveServerCertificate(TlsClientContext clientContext, AsyncTlsClient client,
             MemoryStream buf, IDictionary<int, byte[]> serverExtensions)
         {
             SecurityParameters securityParameters = clientContext.SecurityParameters;
@@ -4869,7 +4869,7 @@ namespace Org.BouncyCastle.Tls.Async
 
             Certificate serverCertificate = Certificate.Parse(options, clientContext, buf, endPointHash);
 
-            TlsProtocol.AssertEmpty(buf);
+            AsyncTlsProtocol.AssertEmpty(buf);
 
             if (serverCertificate.IsEmpty)
                 throw new TlsFatalAlert(AlertDescription.decode_error);
@@ -4884,7 +4884,7 @@ namespace Org.BouncyCastle.Tls.Async
             return authentication;
         }
 
-        internal static TlsAuthentication Receive13ServerCertificate(TlsClientContext clientContext, TlsClient client,
+        internal static TlsAuthentication Receive13ServerCertificate(TlsClientContext clientContext, AsyncTlsClient client,
             Stream buf, IDictionary<int, byte[]> serverExtensions)
         {
             SecurityParameters securityParameters = clientContext.SecurityParameters;
@@ -4952,7 +4952,7 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         internal static IDictionary<int, TlsAgreement> AddKeyShareToClientHello(TlsClientContext clientContext,
-            TlsClient client, IDictionary<int, byte[]> clientExtensions)
+            AsyncTlsClient client, IDictionary<int, byte[]> clientExtensions)
         {
             /*
              * RFC 8446 9.2. If containing a "supported_groups" extension, it MUST also contain a
@@ -5301,7 +5301,7 @@ namespace Org.BouncyCastle.Tls.Async
             }
         }
 
-        internal static void NegotiatedVersionDtlsClient(TlsClientContext clientContext, TlsClient client)
+        internal static void NegotiatedVersionDtlsClient(TlsClientContext clientContext, AsyncTlsClient client)
         {
             SecurityParameters securityParameters = clientContext.SecurityParameters;
             ProtocolVersion negotiatedVersion = securityParameters.NegotiatedVersion;
@@ -5325,7 +5325,7 @@ namespace Org.BouncyCastle.Tls.Async
             NegotiatedVersion(securityParameters);
         }
 
-        internal static void NegotiatedVersionTlsClient(TlsClientContext clientContext, TlsClient client)
+        internal static void NegotiatedVersionTlsClient(TlsClientContext clientContext, AsyncTlsClient client)
         {
             SecurityParameters securityParameters = clientContext.SecurityParameters;
             ProtocolVersion negotiatedVersion = securityParameters.NegotiatedVersion;
@@ -5553,7 +5553,7 @@ namespace Org.BouncyCastle.Tls.Async
 
         /// <exception cref="IOException"/>
         internal static OfferedPsks.BindersConfig AddPreSharedKeyToClientHello(TlsClientContext clientContext,
-            TlsClient client, IDictionary<int, byte[]> clientExtensions, int[] offeredCipherSuites)
+            AsyncTlsClient client, IDictionary<int, byte[]> clientExtensions, int[] offeredCipherSuites)
         {
             if (!IsTlsV13(clientContext.ClientVersion))
                 return null;
@@ -5709,7 +5709,7 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         /// <exception cref="IOException"/>
-        internal static TlsPskExternal[] GetPskExternalsClient(TlsClient client, int[] offeredCipherSuites)
+        internal static TlsPskExternal[] GetPskExternalsClient(AsyncTlsClient client, int[] offeredCipherSuites)
         {
             var externalPsks = client.GetExternalPsks();
             if (IsNullOrEmpty(externalPsks))
@@ -5833,27 +5833,27 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         // TODO[api] Not needed once GetHandshakeResendTimeMillis() has been added to TlsPeer
-        internal static int GetHandshakeResendTimeMillis(TlsPeer tlsPeer)
+        internal static int GetHandshakeResendTimeMillis(AsyncTlsPeer tlsPeer)
         {
-            if (tlsPeer is AbstractTlsPeer abstractTlsPeer)
+            if (tlsPeer is AbstractAsyncTlsPeer abstractTlsPeer)
                 return abstractTlsPeer.GetHandshakeResendTimeMillis();
 
             return 1000;
         }
 
         // TODO[api] Not needed once NotifyConnectionClosed() has been added to TlsPeer
-        internal static void NotifyConnectionClosed(TlsPeer tlsPeer)
+        internal static void NotifyConnectionClosed(AsyncTlsPeer tlsPeer)
         {
-            if (tlsPeer is AbstractTlsPeer abstractTlsPeer)
+            if (tlsPeer is AbstractAsyncTlsPeer abstractTlsPeer)
             {
                 abstractTlsPeer.NotifyConnectionClosed();
             }
         }
 
         // TODO[api] Not needed once ShouldUseCompatibilityMode() has been added to TlsClient
-        internal static bool ShouldUseCompatibilityMode(TlsClient tlsClient)
+        internal static bool ShouldUseCompatibilityMode(AsyncTlsClient tlsClient)
         {
-            if (tlsClient is AbstractTlsClient abstractTlsClient)
+            if (tlsClient is AbstractAsyncTlsClient abstractTlsClient)
                 return abstractTlsClient.ShouldUseCompatibilityMode();
 
             return true;

@@ -6,14 +6,14 @@ using Org.BouncyCastle.Tls.Crypto;
 namespace Org.BouncyCastle.Tls.Async
 {
     /// <summary>Base class for a TLS client or server.</summary>
-    public abstract class AbstractTlsPeer
-        : TlsPeer
+    public abstract class AbstractAsyncTlsPeer
+        : AsyncTlsPeer
     {
         private readonly TlsCrypto m_crypto;
 
-        private volatile TlsCloseable m_closeHandle;
+        private volatile AsyncTlsCloseable m_closeHandle;
 
-        protected AbstractTlsPeer(TlsCrypto crypto)
+        protected AbstractAsyncTlsPeer(TlsCrypto crypto)
         {
             this.m_crypto = crypto;
         }
@@ -34,7 +34,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         public virtual async Task CancelAsync()
         {
-            TlsCloseable closeHandle = this.m_closeHandle;
+            AsyncTlsCloseable closeHandle = this.m_closeHandle;
             if (null != closeHandle)
             {
                 await closeHandle.CloseAsync();
@@ -46,7 +46,7 @@ namespace Org.BouncyCastle.Tls.Async
             get { return m_crypto; }
         }
 
-        public virtual void NotifyCloseHandle(TlsCloseable closeHandle)
+        public virtual void NotifyCloseHandle(AsyncTlsCloseable closeHandle)
         {
             this.m_closeHandle = closeHandle;
         }

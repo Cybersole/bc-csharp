@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Org.BouncyCastle.Tls.Async
 {
-    public interface TlsCloseable
+    public interface AsyncTlsCloseable
     {
         /// <exception cref="IOException"/>
         Task CloseAsync();

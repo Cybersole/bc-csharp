@@ -6,11 +6,11 @@ using Org.BouncyCastle.Tls.Crypto;
 namespace Org.BouncyCastle.Tls.Async
 {
     /// <summary>Base interface for a (D)TLS endpoint.</summary>
-    public interface TlsPeer
+    public interface AsyncTlsPeer
     {
         TlsCrypto Crypto { get; }
 
-        void NotifyCloseHandle(TlsCloseable closehandle);
+        void NotifyCloseHandle(AsyncTlsCloseable closehandle);
 
         /// <exception cref="IOException"/>
         Task CancelAsync();

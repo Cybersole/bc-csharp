@@ -5,7 +5,7 @@ using Org.BouncyCastle.Utilities;
 
 namespace Org.BouncyCastle.Tls.Async
 {
-    internal sealed class HandshakeMessageOutput
+    internal sealed class AsyncHandshakeMessageOutput
         : MemoryStream
     {
         internal static int GetLength(int bodyLength)
@@ -14,38 +14,38 @@ namespace Org.BouncyCastle.Tls.Async
         }
 
         /// <exception cref="IOException"/>
-        internal static async Task Send(TlsProtocol protocol, short handshakeType, byte[] body)
+        internal static async Task Send(AsyncTlsProtocol protocol, short handshakeType, byte[] body)
         {
-            HandshakeMessageOutput message = new HandshakeMessageOutput(handshakeType, body.Length);
+            AsyncHandshakeMessageOutput message = new AsyncHandshakeMessageOutput(handshakeType, body.Length);
             message.Write(body, 0, body.Length);
             await message.SendAsync(protocol);
         }
 
         /// <exception cref="IOException"/>
-        internal HandshakeMessageOutput(short handshakeType)
+        internal AsyncHandshakeMessageOutput(short handshakeType)
             : this(handshakeType, 60)
         {
         }
 
         /// <exception cref="IOException"/>
-        internal HandshakeMessageOutput(short handshakeType, int bodyLength)
+        internal AsyncHandshakeMessageOutput(short handshakeType, int bodyLength)
             : base(GetLength(bodyLength))
         {
-            TlsUtilities.CheckUint8(handshakeType);
-            TlsUtilities.WriteUint8(handshakeType, this);
+            AsyncTlsUtilities.CheckUint8(handshakeType);
+            AsyncTlsUtilities.WriteUint8(handshakeType, this);
             // Reserve space for length
             Seek(3L, SeekOrigin.Current);
         }
 
         /// <exception cref="IOException"/>
-        internal async Task SendAsync(TlsProtocol protocol)
+        internal async Task SendAsync(AsyncTlsProtocol protocol)
         {
             // Patch actual length back in
             int bodyLength = Convert.ToInt32(Length) - 4;
-            TlsUtilities.CheckUint24(bodyLength);
+            AsyncTlsUtilities.CheckUint24(bodyLength);
 
             Seek(1L, SeekOrigin.Begin);
-            TlsUtilities.WriteUint24(bodyLength, this);
+            AsyncTlsUtilities.WriteUint24(bodyLength, this);
 
             byte[] buf = GetBuffer();
             int count = Convert.ToInt32(Length);
@@ -59,10 +59,10 @@ namespace Org.BouncyCastle.Tls.Async
         {
             // Patch actual length back in
             int bodyLength = Convert.ToInt32(Length) - 4 + bindersSize;
-            TlsUtilities.CheckUint24(bodyLength);
+            AsyncTlsUtilities.CheckUint24(bodyLength);
 
             Seek(1L, SeekOrigin.Begin);
-            TlsUtilities.WriteUint24(bodyLength, this);
+            AsyncTlsUtilities.WriteUint24(bodyLength, this);
 
             byte[] buf = GetBuffer();
             int count = Convert.ToInt32(Length);
@@ -72,7 +72,7 @@ namespace Org.BouncyCastle.Tls.Async
             Seek(0L, SeekOrigin.End);
         }
 
-        internal async Task SendClientHelloAsync(TlsClientProtocol clientProtocol, TlsHandshakeHash handshakeHash, int bindersSize)
+        internal async Task SendClientHelloAsync(AsyncTlsClientProtocol clientProtocol, TlsHandshakeHash handshakeHash, int bindersSize)
         {
             byte[] buf = GetBuffer();
             int count = Convert.ToInt32(Length);
