@@ -23,9 +23,9 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Restore dependencies
-      run: dotnet restore -p:TargetFramework=net6.0
+      run: dotnet restore --configuration Release -p:TargetFramework=net6.0
     - name: Build
-      run: dotnet build --no-restore -p:TargetFramework=net6.0
+      run: dotnet build --configuration Release --no-restore -p:TargetFramework=net6.0
     - name: Pack
       run: dotnet pack --configuration Release --no-build --output . -p:TargetFramework=net6.0
     - name: Push
