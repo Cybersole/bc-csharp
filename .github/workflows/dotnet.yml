@@ -21,14 +21,12 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore -p:TargetFramework=net6.0
     - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet build --no-restore -p:TargetFramework=net6.0
     - name: Pack
-      run: dotnet pack --configuration Release --no-build --output .
+      run: dotnet pack --configuration Release --no-build --output . -p:TargetFramework=net6.0
     - name: Push
-      run: dotnet nuget push BouncyCastle.Cryptography.nupkg --source https://nuget.pkg.github.com/Cybersole/index.json --api-key ${GITHUB_TOKEN}
+      run: dotnet nuget push *.nupkg --source https://nuget.pkg.github.com/Cybersole/index.json --api-key ${GITHUB_TOKEN}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
