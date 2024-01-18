@@ -392,7 +392,7 @@ namespace Org.BouncyCastle.Tls
                 var clientConnectionID = GetNewConnectionID();
                 if (clientConnectionID != null)
                 {
-                    TlsExtensionsUtilities.AddConnectionIDExtension(clientExtensions, clientConnectionID);
+                    TlsExtensionsUtilities.AddConnectionIDExtension(clientExtensions, clientConnectionID); 
                 }
             }
 
