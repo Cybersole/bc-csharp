@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Diagnostics;
 using Org.BouncyCastle.Crypto.Macs;
 using Org.BouncyCastle.Crypto.Parameters;
 
@@ -62,7 +62,7 @@ namespace Org.BouncyCastle.Crypto.Generators
          * @param ikm  the input keying material
          * @return the PRK as KeyParameter
          */
-        private KeyParameter Extract(byte[] salt, byte[] ikm)
+        public KeyParameter Extract(byte[] salt, byte[] ikm)
         {
             if (salt == null)
             {
