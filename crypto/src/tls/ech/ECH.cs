@@ -22,9 +22,22 @@ namespace Org.BouncyCastle.Tls.Ech
             var serverName = helloBase.Extensions[ExtensionType.server_name];
             var supportedVersions = helloBase.Extensions[ExtensionType.supported_versions];
 
-            if(config is null)
+            if(config is null) //GREASE
             {
-                //GREASE
+                var dummyEncodedHelloInnerLen = 100;
+
+                config = ECHConfig.GetGrease();
+
+                var echGrease = new ECHClientOuter();
+                echGrease.Handle.Enc = config.SetupSealer().GetEncapsulation();
+                echGrease.Handle.Suite = config.Suites[0];
+                echGrease.Handle.ConfigId = config.ConfigId;
+                echGrease.Payload = new byte[dummyEncodedHelloInnerLen + 16];
+
+                Random.Shared.NextBytes(echGrease.Payload);
+
+                helloBase.Extensions[ExtensionECH] = echGrease.ToBytes();
+
                 return (null, helloBase);
             }
 

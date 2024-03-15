@@ -21,7 +21,7 @@ namespace Org.BouncyCastle.Tls.Ech
 
         public HPKEContextWithEncapsulation SetupSealer()
         {
-            byte[] info = [.."tls ech"u8, 0, ..Raw];
+            byte[] info = Raw != null ? [.."tls ech"u8, 0, ..Raw] : null;
             byte[] seed = new byte[32];
 
             Random.Shared.NextBytes(seed);
@@ -31,6 +31,23 @@ namespace Org.BouncyCastle.Tls.Ech
             var ctx = hpke.SetupBaseS(PublicKey, info, pair);
 
             return ctx;
+        }
+
+        public static ECHConfig GetGrease()
+        {
+            byte[] dummyX25519PublicKey = [143, 38, 37, 36, 12, 6, 229, 30, 140, 27, 167, 73, 26, 100, 203, 107, 216, 81, 163, 222, 52, 211, 54, 210, 46, 37, 78, 216, 157, 97, 241, 244];
+
+            return new()
+            {
+                ConfigId = (byte)Random.Shared.Next(0, 255),
+                KemId = 0x20,
+                Suites =
+                [
+                    new HpkeSymmetricCipherSuite(0x01, 0x01)
+                ],
+                RawPublicKey = dummyX25519PublicKey,
+                PublicKey = new X25519PublicKeyParameters(dummyX25519PublicKey)
+            };
         }
 
         public static List<ECHConfig> Parse(string base64) => Parse(Convert.FromBase64String(base64));
