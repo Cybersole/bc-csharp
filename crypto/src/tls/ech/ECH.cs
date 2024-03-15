@@ -100,7 +100,7 @@ namespace Org.BouncyCastle.Tls.Ech
                 var ext = TlsUtilities.ReadUint16(extStream);
                 var data = TlsUtilities.ReadOpaque16(extStream);
 
-                if (ext == ExtensionECH) // key_share
+                if (ext == ExtensionECH) 
                 {
                     var ech = ECHClientOuter.FromBytes(data);
                     ech.Payload = new byte[payloadLen];
@@ -154,7 +154,7 @@ namespace Org.BouncyCastle.Tls.Ech
                 var ext = TlsUtilities.ReadUint16(extStream);
                 var data = TlsUtilities.ReadOpaque16(extStream);
 
-                if (ext == 51) // key_share
+                if (ext == ExtensionType.key_share)
                 {
                     TlsUtilities.WriteUint16(ExtensionECHOuterExtensions, extOutput);
 

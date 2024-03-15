@@ -794,7 +794,6 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         protected virtual void Process13HelloRetryRequest(ServerHello helloRetryRequest)
         {
-            Debug.WriteLine("retrying");
             ProtocolVersion legacy_record_version = ProtocolVersion.TLSv12;
             m_recordStream.SetWriteVersion(legacy_record_version);
 
@@ -1764,12 +1763,11 @@ namespace Org.BouncyCastle.Tls.Async
 
             if (shouldUseEms && AsyncTlsUtilities.IsExtendedMasterSecretOptional(supportedVersions))
             {
-                //HERE
-                //TlsExtensionsUtilities.AddExtendedMasterSecretExtension(this.m_clientExtensions);
+                TlsExtensionsUtilities.AddExtendedMasterSecretExtension(this.m_clientExtensions);
             }
             else
             {
-                //this.m_clientExtensions.Remove(ExtensionType.extended_master_secret);
+                this.m_clientExtensions.Remove(ExtensionType.extended_master_secret);
             }
 
             // NOT renegotiating

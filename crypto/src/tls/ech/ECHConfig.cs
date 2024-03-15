@@ -1,13 +1,8 @@
 ﻿using Org.BouncyCastle.Crypto.Hpke;
 using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Tls;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Org.BouncyCastle.Tls.Ech
 {
@@ -27,8 +22,9 @@ namespace Org.BouncyCastle.Tls.Ech
         public HPKEContextWithEncapsulation SetupSealer()
         {
             byte[] info = [.."tls ech"u8, 0, ..Raw];
+            byte[] seed = new byte[32];
 
-            byte[] seed = [117, 200, 83, 30, 45, 18, 157, 218, 108, 42, 215, 129, 67, 248, 104, 105, 4, 240, 18, 244, 114, 145, 149, 171, 107, 207, 61, 18, 98, 48, 225, 109];
+            Random.Shared.NextBytes(seed);
 
             var hpke = new HPKE(HPKE.mode_base, HPKE.kem_X25519_SHA256, HPKE.kdf_HKDF_SHA256, HPKE.aead_AES_GCM128);
             var pair = hpke.DeriveKeyPair(seed);
