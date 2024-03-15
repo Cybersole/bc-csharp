@@ -4,6 +4,7 @@ using System.IO;
 
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Tls.Crypto;
+using Org.BouncyCastle.Tls.Ech;
 using Org.BouncyCastle.Utilities;
 
 namespace Org.BouncyCastle.Tls.Async
@@ -514,5 +515,9 @@ namespace Org.BouncyCastle.Tls.Async
         public virtual void NotifyNewSessionTicket13(NewSessionTicket13 newSessionTicket)
         {
         }
+
+        public virtual bool GetECHEnabled() => false;
+
+        public virtual ECHConfig GetECHConfig() => null;
     }
 }

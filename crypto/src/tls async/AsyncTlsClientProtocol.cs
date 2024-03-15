@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
 using Org.BouncyCastle.Tls.Crypto;
+using Org.BouncyCastle.Tls.Ech;
 using Org.BouncyCastle.Utilities;
 using Org.BouncyCastle.Utilities.Zlib;
 
@@ -99,7 +100,7 @@ namespace Org.BouncyCastle.Tls.Async
         {
             if (!IsTlsV13ConnectionState())
                 throw new TlsFatalAlert(AlertDescription.internal_error);
-            Debug.WriteLine("TYPE: " + type);
+
             switch (type)
             {
                 case HandshakeType.certificate:
@@ -793,6 +794,7 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         protected virtual void Process13HelloRetryRequest(ServerHello helloRetryRequest)
         {
+            Debug.WriteLine("retrying");
             ProtocolVersion legacy_record_version = ProtocolVersion.TLSv12;
             m_recordStream.SetWriteVersion(legacy_record_version);
 
@@ -1762,11 +1764,12 @@ namespace Org.BouncyCastle.Tls.Async
 
             if (shouldUseEms && AsyncTlsUtilities.IsExtendedMasterSecretOptional(supportedVersions))
             {
-                TlsExtensionsUtilities.AddExtendedMasterSecretExtension(this.m_clientExtensions);
+                //HERE
+                //TlsExtensionsUtilities.AddExtendedMasterSecretExtension(this.m_clientExtensions);
             }
             else
             {
-                this.m_clientExtensions.Remove(ExtensionType.extended_master_secret);
+                //this.m_clientExtensions.Remove(ExtensionType.extended_master_secret);
             }
 
             // NOT renegotiating
@@ -1817,10 +1820,27 @@ namespace Org.BouncyCastle.Tls.Async
         /// <exception cref="IOException"/>
         protected virtual Task SendClientHelloMessageAsync()
         {
-            AsyncHandshakeMessageOutput message = new AsyncHandshakeMessageOutput(HandshakeType.client_hello);
-            m_clientHello.Encode(m_tlsClientContext, message);
+            ClientHello innerHello = null;
 
-            message.PrepareClientHello(m_handshakeHash, m_clientHello.BindersSize);
+            if(m_tlsClient.GetECHEnabled())
+            {
+                var config = m_tlsClient.GetECHConfig();
+
+                (innerHello, m_clientHello) = ECH.OfferECH(m_clientHello, config);
+            }
+
+            AsyncHandshakeMessageOutput message = new AsyncHandshakeMessageOutput(HandshakeType.client_hello);
+            m_clientHello.Encode(message);
+
+            message.PrepareClientHello(m_handshakeHash, m_clientHello.BindersSize, innerHello == null);
+
+            if(innerHello != null)
+            {
+                AsyncHandshakeMessageOutput innerMessage = new AsyncHandshakeMessageOutput(HandshakeType.client_hello);
+                innerHello.Encode(innerMessage);
+
+                innerMessage.PrepareClientHello(m_handshakeHash, m_clientHello.BindersSize, true);
+            }
 
             if (null != m_clientBinders)
             {

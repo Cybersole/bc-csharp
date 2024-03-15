@@ -55,7 +55,7 @@ namespace Org.BouncyCastle.Tls.Async
             Dispose();
         }
 
-        internal void PrepareClientHello(TlsHandshakeHash handshakeHash, int bindersSize)
+        internal void PrepareClientHello(TlsHandshakeHash handshakeHash, int bindersSize, bool updateHash = true)
         {
             // Patch actual length back in
             int bodyLength = Convert.ToInt32(Length) - 4 + bindersSize;
@@ -67,7 +67,8 @@ namespace Org.BouncyCastle.Tls.Async
             byte[] buf = GetBuffer();
             int count = Convert.ToInt32(Length);
 
-            handshakeHash.Update(buf, 0, count);
+            if(updateHash)
+                handshakeHash.Update(buf, 0, count);
 
             Seek(0L, SeekOrigin.End);
         }

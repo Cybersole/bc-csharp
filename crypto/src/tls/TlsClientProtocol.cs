@@ -1819,7 +1819,7 @@ namespace Org.BouncyCastle.Tls
         protected virtual void SendClientHelloMessage()
         {
             HandshakeMessageOutput message = new HandshakeMessageOutput(HandshakeType.client_hello);
-            m_clientHello.Encode(m_tlsClientContext, message);
+            m_clientHello.Encode(message);
 
             message.PrepareClientHello(m_handshakeHash, m_clientHello.BindersSize);
 

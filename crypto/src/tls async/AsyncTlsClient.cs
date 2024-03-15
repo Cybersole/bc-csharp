@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Org.BouncyCastle.Tls.Ech;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -100,6 +101,10 @@ namespace Org.BouncyCastle.Tls.Async
         /// <returns>(SupplementalDataEntry)</returns>
         /// <exception cref="IOException"/>
         IList<SupplementalDataEntry> GetClientSupplementalData();
+
+        bool GetECHEnabled();
+
+        ECHConfig GetECHConfig();
 
         /// <summary>RFC 5077 3.3. NewSessionTicket Handshake Message</summary>
         /// <remarks>

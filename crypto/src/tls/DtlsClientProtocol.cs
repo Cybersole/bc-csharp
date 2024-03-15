@@ -566,7 +566,7 @@ namespace Org.BouncyCastle.Tls
              * consider the impact of binders on cookie patching after HelloVerifyRequest.
              */
             MemoryStream buf = new MemoryStream();
-            clientHello.Encode(clientContext, buf);
+            clientHello.Encode(buf);
             return buf.ToArray();
         }
 

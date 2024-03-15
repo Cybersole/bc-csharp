@@ -68,7 +68,7 @@ namespace Org.BouncyCastle.Tls
         /// <param name="context">the <see cref="TlsContext"/> of the current connection.</param>
         /// <param name="output">the <see cref="Stream"/> to encode to.</param>
         /// <exception cref="IOException"/>
-        public void Encode(TlsContext context, Stream output)
+        public void Encode(Stream output)
         {
             if (m_bindersSize < 0)
                 throw new TlsFatalAlert(AlertDescription.internal_error);
