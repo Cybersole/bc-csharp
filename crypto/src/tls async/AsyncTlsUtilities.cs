@@ -1622,6 +1622,7 @@ namespace Org.BouncyCastle.Tls.Async
             int prfHashLength = TlsCryptoUtilities.GetHashOutputSize(pskCryptoHashAlgorithm);
 
             string label = isExternalPsk ? "ext binder" : "res binder";
+
             byte[] emptyTranscriptHash = crypto.CreateHash(pskCryptoHashAlgorithm).CalculateHash();
 
             TlsSecret binderKey = DeriveSecret(pskCryptoHashAlgorithm, prfHashLength, earlySecret, label,
@@ -1728,7 +1729,7 @@ namespace Org.BouncyCastle.Tls.Async
         {
             SecurityParameters securityParameters = context.SecurityParameters;
             TlsSecret phaseSecret = securityParameters.MasterSecret;
-
+            
             Establish13TrafficSecrets(context, serverFinishedTranscriptHash, phaseSecret, "c ap traffic",
                 "s ap traffic", recordStream);
 
@@ -4237,7 +4238,7 @@ namespace Org.BouncyCastle.Tls.Async
                 || crypto.HasSignatureAlgorithm(SignatureAlgorithm.rsa_pss_pss_sha512);
         }
 
-        internal static byte[] GetCurrentPrfHash(TlsHandshakeHash handshakeHash)
+        public static byte[] GetCurrentPrfHash(TlsHandshakeHash handshakeHash)
         {
             return handshakeHash.ForkPrfHash().CalculateHash();
         }
@@ -5349,7 +5350,7 @@ namespace Org.BouncyCastle.Tls.Async
             NegotiatedVersion(securityParameters);
         }
 
-        internal static TlsSecret DeriveSecret(SecurityParameters securityParameters, TlsSecret secret, string label,
+        public static TlsSecret DeriveSecret(SecurityParameters securityParameters, TlsSecret secret, string label,
             byte[] transcriptHash)
         {
             int prfCryptoHashAlgorithm = securityParameters.PrfCryptoHashAlgorithm;
@@ -5545,7 +5546,7 @@ namespace Org.BouncyCastle.Tls.Async
                 TlsPsk psk = psks[i];
 
                 // TODO[tls13-psk] Handle obfuscated_ticket_age for resumption PSKs
-                identities.Add(new PskIdentity(psk.Identity, 0L));
+                identities.Add(new PskIdentity(psk.Identity, psk.ObfuscatedTicketAge));
             }
 
             TlsExtensionsUtilities.AddPreSharedKeyClientHello(clientExtensions, new OfferedPsks(identities));
@@ -5638,7 +5639,7 @@ namespace Org.BouncyCastle.Tls.Async
                     TlsPskExternal psk = server.GetExternalPsk(offeredPsks.Identities);
                     if (null != psk)
                     {
-                        int index = offeredPsks.GetIndexOfIdentity(new PskIdentity(psk.Identity, 0L));
+                        int index = offeredPsks.GetIndexOfIdentity(new PskIdentity(psk.Identity, psk.ObfuscatedTicketAge));
                         if (index >= 0)
                         {
                             byte[] binder = offeredPsks.Binders[index];

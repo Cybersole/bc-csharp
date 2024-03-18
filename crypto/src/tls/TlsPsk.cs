@@ -8,6 +8,8 @@ namespace Org.BouncyCastle.Tls
     {
         byte[] Identity { get; }
 
+        long ObfuscatedTicketAge { get; set; }
+
         TlsSecret Key { get; }
 
         int PrfAlgorithm { get; }

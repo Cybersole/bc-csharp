@@ -147,7 +147,7 @@ namespace Org.BouncyCastle.Tls
                 TlsSecret earlySecret = earlySecrets[i];
 
                 // TODO[tls13-psk] Handle resumption PSKs
-                bool isExternalPsk = true;
+                bool isExternalPsk = false;
                 int pskCryptoHashAlgorithm = TlsCryptoUtilities.GetHashForPrf(psk.PrfAlgorithm);
 
                 // TODO[tls13-psk] Cache the transcript hashes per algorithm to avoid duplicates for multiple PSKs

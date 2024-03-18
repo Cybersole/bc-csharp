@@ -1310,6 +1310,8 @@ namespace Org.BouncyCastle.Tls.Async
             securityParameters.m_tlsUnique = null;
 
             await AsyncHandshakeMessageOutput.Send(this, HandshakeType.finished, verify_data);
+
+            securityParameters.m_resumption_secret = AsyncTlsUtilities.DeriveSecret(securityParameters, securityParameters.MasterSecret, "res master", m_handshakeHash.ForkPrfHash().CalculateHash());
         }
 
         /// <exception cref="IOException"/>

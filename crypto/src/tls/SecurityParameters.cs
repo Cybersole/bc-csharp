@@ -20,6 +20,7 @@ namespace Org.BouncyCastle.Tls
         internal TlsSecret m_earlyExporterMasterSecret = null;
         internal TlsSecret m_earlySecret = null;
         internal TlsSecret m_exporterMasterSecret = null;
+        internal TlsSecret m_resumption_secret = null;
         internal TlsSecret m_handshakeSecret = null;
         internal TlsSecret m_masterSecret = null;
         internal TlsSecret m_trafficSecretClient = null;
@@ -168,6 +169,11 @@ namespace Org.BouncyCastle.Tls
         public TlsSecret HandshakeSecret
         {
             get { return m_handshakeSecret; }
+        }
+
+        public TlsSecret ResumptionSecret
+        {
+            get { return m_resumption_secret; }
         }
 
         public bool IsApplicationProtocolSet

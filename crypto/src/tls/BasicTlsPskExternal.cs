@@ -38,5 +38,7 @@ namespace Org.BouncyCastle.Tls
         {
             get { return m_prfAlgorithm; }
         }
+
+        public virtual long ObfuscatedTicketAge { get; set; }
     }
 }
