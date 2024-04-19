@@ -145,6 +145,10 @@ namespace Org.BouncyCastle.Tls
          */
         public const int renegotiation_info = 0xff01;
 
+        public const int ech = 0xfe0d;
+
+        public const int application_settings = 17513;
+
         public static string GetName(int extensionType)
         {
             switch (extensionType)

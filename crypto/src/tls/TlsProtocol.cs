@@ -2073,12 +2073,7 @@ namespace Org.BouncyCastle.Tls
         /// <exception cref="IOException"/>
         internal static void WriteExtensionsData(IDictionary<int, byte[]> extensions, MemoryStream buf, int bindersSize)
         {
-            /*
-             * NOTE: There are reports of servers that don't accept a zero-length extension as the last
-             * one, so we write out any zero-length ones first as a best-effort workaround.
-             */
-            WriteSelectedExtensions(buf, extensions, true);
-            WriteSelectedExtensions(buf, extensions, false);
+            WriteSelectedExtensions(buf, extensions);
             WritePreSharedKeyExtension(buf, extensions, bindersSize);
         }
 
@@ -2099,8 +2094,7 @@ namespace Org.BouncyCastle.Tls
         }
 
         /// <exception cref="IOException"/>
-        internal static void WriteSelectedExtensions(Stream output, IDictionary<int, byte[]> extensions,
-            bool selectEmpty)
+        internal static void WriteSelectedExtensions(Stream output, IDictionary<int, byte[]> extensions)
         {
             foreach (var extension in extensions)
             {
@@ -2112,12 +2106,12 @@ namespace Org.BouncyCastle.Tls
 
                 byte[] extension_data = extension.Value;
 
-                if (selectEmpty == (extension_data.Length == 0))
-                {
-                    TlsUtilities.CheckUint16(extension_type);
-                    TlsUtilities.WriteUint16(extension_type, output);
-                    TlsUtilities.WriteOpaque16(extension_data, output);
-                }
+                if (extension_data == null)
+                    continue;
+
+                TlsUtilities.CheckUint16(extension_type);
+                TlsUtilities.WriteUint16(extension_type, output);
+                TlsUtilities.WriteOpaque16(extension_data, output);
             }
         }
 

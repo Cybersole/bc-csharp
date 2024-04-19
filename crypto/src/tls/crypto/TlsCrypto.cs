@@ -47,6 +47,8 @@ namespace Org.BouncyCastle.Tls.Crypto
         /// <returns>true if this instance can support ECDH key agreement, false otherwise.</returns>
         bool HasECDHAgreement();
 
+        bool HasKEMAgreement();
+
         /// <summary>Return true if this TlsCrypto can support the passed in block/stream encryption algorithm.
         /// </summary>
         /// <param name="encryptionAlgorithm">the algorithm of interest.</param>
@@ -140,6 +142,8 @@ namespace Org.BouncyCastle.Tls.Crypto
         /// <param name="ecConfig">the config describing the EC parameters to use.</param>
         /// <returns>a TlsECDomain supporting the parameters in ecConfig.</returns>
         TlsECDomain CreateECDomain(TlsECConfig ecConfig);
+
+        TlsKEMDomain CreateKEMDomain(TlsKEMConfig kemConfig);
 
         /// <summary>Adopt the passed in secret, creating a new copy of it.</summary>
         /// <param name="secret">the secret to make a copy of.</param>

@@ -771,5 +771,22 @@ namespace Org.BouncyCastle.Tls.Crypto.Impl.BC
         {
             return AdoptLocalSecret(new byte[TlsCryptoUtilities.GetHashOutputSize(cryptoHashAlgorithm)]);
         }
+
+        public override bool HasKEMAgreement()
+        {
+            return true;
+        }
+
+        public override TlsKEMDomain CreateKEMDomain(TlsKEMConfig kemConfig)
+        {
+            switch (kemConfig.GetNamedGroup())
+            {
+                case NamedGroup.x25519Kyber768:
+                    return new BcTlsX25519KyberDomain(this, kemConfig);
+
+                default:
+                    return new BcTlsKyberDomain(this, kemConfig);
+            }
+        }
     }
 }

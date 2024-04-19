@@ -89,5 +89,9 @@ namespace Org.BouncyCastle.Tls.Crypto.Impl
         public abstract TlsSrp6VerifierGenerator CreateSrp6VerifierGenerator(TlsSrpConfig srpConfig);
 
         public abstract TlsSecret HkdfInit(int cryptoHashAlgorithm);
+
+        public abstract bool HasKEMAgreement();
+
+        public abstract TlsKEMDomain CreateKEMDomain(TlsKEMConfig kemConfig);
     }
 }

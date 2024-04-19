@@ -5035,6 +5035,13 @@ namespace Org.BouncyCastle.Tls.Async
                         agreement = crypto.CreateDHDomain(new TlsDHConfig(supportedGroup, true)).CreateDH();
                     }
                 }
+                else if (NamedGroup.RefersToASpecificKEM(supportedGroup))
+                {
+                    if (crypto.HasKEMAgreement())
+                    {
+                        agreement = crypto.CreateKEMDomain(new TlsKEMConfig(supportedGroup)).CreateKEM();
+                    }
+                }
 
                 byte[] key_exchange = agreement?.GenerateEphemeral() ?? new byte[] { 0 };
                 KeyShareEntry clientShare = new KeyShareEntry(supportedGroup, key_exchange);

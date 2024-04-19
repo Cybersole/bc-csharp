@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Org.BouncyCastle.Tls
 {
@@ -102,6 +103,12 @@ namespace Org.BouncyCastle.Tls
         public const int arbitrary_explicit_prime_curves = 0xFF01;
         public const int arbitrary_explicit_char2_curves = 0xFF02;
 
+        public const int kyber512 = 0x023A;
+        public const int kyber768 = 0x023C;
+        public const int kyber1024 = 0x023D;
+        public const int x25519Kyber768 = 0x6399;
+
+
         /* Names of the actual underlying elliptic curves (not necessarily matching the NamedGroup names). */
         private static readonly string[] CurveNames = new string[]{ "sect163k1", "sect163r1", "sect163r2", "sect193r1",
             "sect193r2", "sect233k1", "sect233r1", "sect239k1", "sect283k1", "sect283r1", "sect409k1", "sect409r1",
@@ -130,7 +137,8 @@ namespace Org.BouncyCastle.Tls
             else
             {
                 if ((namedGroup >= brainpoolP256r1tls13 && namedGroup <= brainpoolP512r1tls13)
-                    || (namedGroup == curveSM2))
+                    || (namedGroup == curveSM2)
+                    || (namedGroup == kyber512 || namedGroup == kyber768 || namedGroup == kyber1024 || namedGroup == x25519Kyber768))
                 {
                     return false;
                 }
@@ -412,7 +420,13 @@ namespace Org.BouncyCastle.Tls
         public static bool RefersToASpecificGroup(int namedGroup)
         {
             return RefersToASpecificCurve(namedGroup)
-                || RefersToASpecificFiniteField(namedGroup);
+                || RefersToASpecificFiniteField(namedGroup)
+                || RefersToASpecificKEM(namedGroup);
+        }
+
+        public static bool RefersToASpecificKEM(int namedGroup)
+        {
+            return namedGroup == kyber512 || namedGroup == kyber768 || namedGroup == kyber1024 || namedGroup == x25519Kyber768;
         }
     }
 }

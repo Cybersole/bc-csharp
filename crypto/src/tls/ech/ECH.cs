@@ -52,7 +52,8 @@ namespace Org.BouncyCastle.Tls.Ech
             var helloOuterOutput = new MemoryStream();
 
             helloBase.Extensions[ExtensionECH] = [ECHClientHelloInnerVariant];
-            helloBase.Extensions[ExtensionType.supported_versions] = TlsExtensionsUtilities.CreateSupportedVersionsExtensionClient([ProtocolVersion.TLSv13]);
+            helloBase.Extensions[ExtensionType.supported_versions] = TlsExtensionsUtilities
+                .CreateSupportedVersionsExtensionClient([ProtocolVersion.TLSv13]);
 
             helloBase.Encode(helloInnerOutput);
 
@@ -64,7 +65,8 @@ namespace Org.BouncyCastle.Tls.Ech
             var newHello = new ClientHello(helloBase.Version, helloBase.Random, helloBase.SessionID,
                 helloBase.Cookie, helloBase.CipherSuites, new Dictionary<int, byte[]>(helloBase.Extensions), helloBase.BindersSize);
 
-            newHello.Extensions[ExtensionType.server_name] = TlsExtensionsUtilities.CreateServerNameExtensionClient([new ServerName(0, config.RawPublicName)]);
+            newHello.Extensions[ExtensionType.server_name] = TlsExtensionsUtilities
+                .CreateServerNameExtensionClient([new ServerName(0, config.RawPublicName)]);
             newHello.Extensions[ExtensionECH] = ech.ToBytes();
             newHello.Extensions[ExtensionType.supported_versions] = supportedVersions;
 
