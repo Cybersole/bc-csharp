@@ -23,6 +23,17 @@ namespace Org.BouncyCastle.Pqc.Crypto.Crystals.Kyber
             return sharedSecret;
         }
 
+        public byte[] Decapsulate(byte[] encapsulation, byte[] secret = null)
+        {
+            byte[] sharedSecret = new byte[m_engine.CryptoBytes];
+            byte[] kr = new byte[m_engine.CryptoBytes * 2];
+
+            m_engine.KemDecrypt(kr, encapsulation, secret ?? ((KyberPrivateKeyParameters)m_key).GetEncoded());
+            m_engine.Symmetric.Kdf(sharedSecret, kr);
+
+            return sharedSecret;
+        }
+
         public int EncapsulationLength => m_engine.CryptoCipherTextBytes;
     }
 }

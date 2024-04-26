@@ -1,11 +1,8 @@
-﻿using Org.BouncyCastle.Tls;
-using Org.BouncyCastle.Tls.Async;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Org.BouncyCastle.Tls.Ech
 {
@@ -17,11 +14,10 @@ namespace Org.BouncyCastle.Tls.Ech
         public const ushort ExtensionECH = 0xfe0d;
         public const ushort ExtensionECHOuterExtensions = 0xfd00;
 
+        public static readonly int[] RequiredExtensions = [ExtensionType.ech, ExtensionType.server_name, ExtensionType.supported_versions];
+
         public static (ClientHello, ClientHello) OfferECH(ClientHello helloBase, ECHConfig config)
         {
-            var serverName = helloBase.Extensions[ExtensionType.server_name];
-            var supportedVersions = helloBase.Extensions[ExtensionType.supported_versions];
-
             if(config is null) //GREASE
             {
                 var dummyEncodedHelloInnerLen = 100;
@@ -48,33 +44,26 @@ namespace Org.BouncyCastle.Tls.Ech
             ech.Handle.Suite = config.Suites[0];
             ech.Handle.ConfigId = config.ConfigId;
 
-            var helloInnerOutput = new MemoryStream();
-            var helloOuterOutput = new MemoryStream();
+            var newHello = new ClientHello(helloBase.Version, helloBase.Random, helloBase.SessionID,
+                helloBase.Cookie, helloBase.CipherSuites, new Dictionary<int, byte[]>(helloBase.Extensions), helloBase.BindersSize);
+
+            foreach (var extension in newHello.Extensions)
+                if (!CompressExtension(extension.Key) && !RequiredExtensions.Contains(extension.Key))
+                    newHello.Extensions.Remove(extension.Key);
+
+            newHello.Extensions[ExtensionType.server_name] = TlsExtensionsUtilities
+                .CreateServerNameExtensionClient([new ServerName(0, config.RawPublicName)]);
+            newHello.Extensions[ExtensionECH] = ech.ToBytes();
 
             helloBase.Extensions[ExtensionECH] = [ECHClientHelloInnerVariant];
             helloBase.Extensions[ExtensionType.supported_versions] = TlsExtensionsUtilities
                 .CreateSupportedVersionsExtensionClient([ProtocolVersion.TLSv13]);
 
-            helloBase.Encode(helloInnerOutput);
+            var serverName = helloBase.Extensions[ExtensionType.server_name];
+            var echInner = EncodeHelloInner(helloBase, serverName.Length, config.MaxNameLen);
+            var cipherLen = echInner.Length + 16;         
 
-            var helloInner = helloInnerOutput.ToArray();
-
-            var echInner = EncodeHelloInner(helloInner, serverName.Length, config.MaxNameLen);
-            var cipherLen = echInner.Length + 16;
-
-            var newHello = new ClientHello(helloBase.Version, helloBase.Random, helloBase.SessionID,
-                helloBase.Cookie, helloBase.CipherSuites, new Dictionary<int, byte[]>(helloBase.Extensions), helloBase.BindersSize);
-
-            newHello.Extensions[ExtensionType.server_name] = TlsExtensionsUtilities
-                .CreateServerNameExtensionClient([new ServerName(0, config.RawPublicName)]);
-            newHello.Extensions[ExtensionECH] = ech.ToBytes();
-            newHello.Extensions[ExtensionType.supported_versions] = supportedVersions;
-
-            newHello.Encode(helloOuterOutput);
-
-            var helloOuter = helloOuterOutput.ToArray();
-
-            var echOutter = EncodeHelloOuterAAD(helloOuter, (uint)cipherLen);
+            var echOutter = EncodeHelloOuterAAD(newHello, (uint)cipherLen);
 
             ech.Payload = ctx.Seal(echOutter, echInner);
 
@@ -82,9 +71,14 @@ namespace Org.BouncyCastle.Tls.Ech
 
             return (helloBase, newHello);
         }
-        public static byte[] EncodeHelloOuterAAD(byte[] hello, uint payloadLen)
+
+        public static bool CompressExtension(int extension) => !RequiredExtensions.Contains(extension);
+
+        public static byte[] EncodeHelloOuterAAD(ClientHello hello, uint payloadLen)
         {
-            using var ms = new MemoryStream(hello);
+            using var ms = new MemoryStream();
+            hello.Encode(ms);
+            ms.Position = 0;
 
             var version = TlsUtilities.ReadUint16(ms);
             var random = new byte[32];
@@ -133,12 +127,11 @@ namespace Org.BouncyCastle.Tls.Ech
             return output.ToArray();
         }
 
-        public static byte[] EncodeHelloInner(byte[] hello, int serverNameLen, int maxNameLen)
+        public static byte[] EncodeHelloInner(ClientHello hello, int serverNameLen, int maxNameLen)
         {
-            using var ms = new MemoryStream(hello);
-
-            //var msgType = TlsUtilities.ReadUint8(ms);
-            //var length = TlsUtilities.ReadUint24(ms);
+            using var ms = new MemoryStream();
+            hello.Encode(ms);
+            ms.Position = 0;
 
             var version = TlsUtilities.ReadUint16(ms);
             var random = new byte[32];
@@ -163,26 +156,42 @@ namespace Org.BouncyCastle.Tls.Ech
 
             var extStream = new MemoryStream(extensions);
             var extOutput = new MemoryStream();
+            var outerExtOutput = new MemoryStream();
+
+            var oldExtensions = new Dictionary<int, byte[]>(hello.Extensions);
+
+            hello.Extensions.Clear();
+
+            foreach (var ext in oldExtensions)
+                if (!CompressExtension(ext.Key))
+                    hello.Extensions[ext.Key] = ext.Value;
+
+            foreach (var ext in oldExtensions)
+                if (!hello.Extensions.ContainsKey(ext.Key))
+                    hello.Extensions[ext.Key] = ext.Value;
 
             while (extStream.Position < extStream.Length)
             {
                 var ext = TlsUtilities.ReadUint16(extStream);
                 var data = TlsUtilities.ReadOpaque16(extStream);
-
-                if (ext == ExtensionType.key_share)
-                {
-                    TlsUtilities.WriteUint16(ExtensionECHOuterExtensions, extOutput);
-
-                    TlsUtilities.WriteUint16(3, extOutput);
-
-                    TlsUtilities.WriteUint8(2, extOutput);
-                    TlsUtilities.WriteUint16(51, extOutput);
-                }
-                else
+            
+                if (!CompressExtension(ext))
                 {
                     TlsUtilities.WriteUint16(ext, extOutput);
                     TlsUtilities.WriteOpaque16(data, extOutput);
+
                 }
+                else
+                {
+                    TlsUtilities.WriteUint16(ext, outerExtOutput);
+                }        
+            }
+
+            if(outerExtOutput.Length > 0)
+            {
+                TlsUtilities.WriteUint16(ExtensionECHOuterExtensions, extOutput);
+                TlsUtilities.WriteUint16((int)outerExtOutput.Length + 1, extOutput);
+                TlsUtilities.WriteOpaque8(outerExtOutput.ToArray(), extOutput);
             }
 
             TlsUtilities.WriteOpaque16(extOutput.ToArray(), output);

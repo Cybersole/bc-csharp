@@ -48,7 +48,6 @@ namespace Org.BouncyCastle.Tls.Crypto.Impl.BC
 
         public TlsSecret CalculateSecret()
         {
-            Debug.WriteLine("calc secret");
             byte[] x25519Secret = domain.CalculateX25519Secret(x25519PrivateKey, x25519PeerPublicKey);
 
             kyberSecret = domain.GetKyberDomain().DeCap((KyberPrivateKeyParameters)kyberLocalKeyPair.Private, kyberCiphertext);

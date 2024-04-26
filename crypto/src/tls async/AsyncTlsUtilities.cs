@@ -5043,7 +5043,7 @@ namespace Org.BouncyCastle.Tls.Async
                     }
                 }
 
-                byte[] key_exchange = agreement?.GenerateEphemeral() ?? new byte[] { 0 };
+                byte[] key_exchange = agreement?.GenerateEphemeral() ?? [0];
                 KeyShareEntry clientShare = new KeyShareEntry(supportedGroup, key_exchange);
 
                 clientShares.Add(clientShare);

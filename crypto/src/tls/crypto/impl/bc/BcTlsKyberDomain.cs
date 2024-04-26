@@ -75,7 +75,7 @@ namespace Org.BouncyCastle.Tls.Crypto.Impl.BC
         public byte[] DeCap(KyberPrivateKeyParameters kyberPrivateKeyParameters, byte[] cipherText)
         {
             KyberKemExtractor kemExtract = new KyberKemExtractor(kyberPrivateKeyParameters);
-            byte[] secret = kemExtract.ExtractSecret(cipherText);
+            byte[] secret = kemExtract.Decapsulate(cipherText);
             return secret;
         }
     }
