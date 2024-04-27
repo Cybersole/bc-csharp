@@ -14,9 +14,10 @@ namespace Org.BouncyCastle.Tls.Ech
         public const ushort ExtensionECH = 0xfe0d;
         public const ushort ExtensionECHOuterExtensions = 0xfd00;
 
-        public static readonly int[] RequiredExtensions = [ExtensionType.ech, ExtensionType.server_name, ExtensionType.supported_versions];
+        public static readonly int[] UncompressedExtensions = [ExtensionType.ech, ExtensionType.server_name, ExtensionType.supported_versions];
+        public static readonly int[] RequiredExtensions = [ExtensionType.supported_groups, ExtensionType.key_share, ExtensionType.application_layer_protocol_negotiation, ExtensionType.signature_algorithms, ..UncompressedExtensions];
 
-        public static (ClientHello, ClientHello) OfferECH(ClientHello helloBase, ECHConfig config)
+        public static (ClientHello, ClientHello) OfferECH(ClientHello hello, ECHConfig config)
         {
             if(config is null) //GREASE
             {
@@ -32,47 +33,58 @@ namespace Org.BouncyCastle.Tls.Ech
 
                 Random.Shared.NextBytes(echGrease.Payload);
 
-                helloBase.Extensions[ExtensionECH] = echGrease.ToBytes();
+                hello.Extensions[ExtensionECH] = echGrease.ToBytes();
 
-                return (null, helloBase);
+                return (null, hello);
             }
 
             var ctx = config.SetupSealer();
 
+            // Setup an empty ECH outer value
             var ech = new ECHClientOuter();
             ech.Handle.Enc = ctx.GetEncapsulation();
             ech.Handle.Suite = config.Suites[0];
             ech.Handle.ConfigId = config.ConfigId;
 
-            var newHello = new ClientHello(helloBase.Version, helloBase.Random, helloBase.SessionID,
-                helloBase.Cookie, helloBase.CipherSuites, new Dictionary<int, byte[]>(helloBase.Extensions), helloBase.BindersSize);
+            // Only include TLS 1.3 extensions and order by the ones that will be compressed first
+            var innerExtensions = hello.Extensions.Where(e => RequiredExtensions.Contains(e.Key)).OrderBy(e => CompressExtension(e.Key)).ToDictionary();
 
-            foreach (var extension in newHello.Extensions)
-                if (!CompressExtension(extension.Key) && !RequiredExtensions.Contains(extension.Key))
-                    newHello.Extensions.Remove(extension.Key);
-
-            newHello.Extensions[ExtensionType.server_name] = TlsExtensionsUtilities
-                .CreateServerNameExtensionClient([new ServerName(0, config.RawPublicName)]);
-            newHello.Extensions[ExtensionECH] = ech.ToBytes();
-
-            helloBase.Extensions[ExtensionECH] = [ECHClientHelloInnerVariant];
-            helloBase.Extensions[ExtensionType.supported_versions] = TlsExtensionsUtilities
+            // Set ECH to inner variant and TLS version to strict 1.3
+            innerExtensions[ExtensionECH] = [ECHClientHelloInnerVariant];
+            innerExtensions[ExtensionType.supported_versions] = TlsExtensionsUtilities
                 .CreateSupportedVersionsExtensionClient([ProtocolVersion.TLSv13]);
 
-            var serverName = helloBase.Extensions[ExtensionType.server_name];
-            var echInner = EncodeHelloInner(helloBase, serverName.Length, config.MaxNameLen);
-            var cipherLen = echInner.Length + 16;         
+            // Create and encode the new HelloInner
+            var innerHello = new ClientHello(hello.Version, hello.Random, hello.SessionID,
+                hello.Cookie, hello.CipherSuites, innerExtensions, hello.BindersSize);
 
-            var echOutter = EncodeHelloOuterAAD(newHello, (uint)cipherLen);
+            var serverName = hello.Extensions[ExtensionType.server_name];
+            var echInner = EncodeHelloInner(innerHello, serverName.Length, config.MaxNameLen);
+            var cipherLen = echInner.Length + 16;
+
+            // Remove extensions from HelloOuter if they have not been compressed and are the same as HelloInner
+            foreach (var extension in hello.Extensions)
+                if (!CompressExtension(extension.Key) && !UncompressedExtensions.Contains(extension.Key))
+                    hello.Extensions.Remove(extension.Key);
+
+            // Set the client facing server SNI value and placeholder ECH
+            hello.Extensions[ExtensionType.server_name] = TlsExtensionsUtilities
+                .CreateServerNameExtensionClient([new ServerName(0, config.RawPublicName)]);
+            hello.Extensions[ExtensionECH] = ech.ToBytes();
+
+            // Encode HelloOuter and set the encrypted_client_hello extension on HelloOuter
+            var echOutter = EncodeHelloOuterAAD(hello, (uint)cipherLen);
 
             ech.Payload = ctx.Seal(echOutter, echInner);
 
-            newHello.Extensions[ExtensionECH] = ech.ToBytes();
+            hello.Extensions[ExtensionECH] = ech.ToBytes();
 
-            return (helloBase, newHello);
+            return (innerHello, hello);
         }
 
-        public static bool CompressExtension(int extension) => !RequiredExtensions.Contains(extension);
+        // For now don't encrypt extensions other than the required ones (so compress all other).
+        // This is what Chrome seems to do.
+        public static bool CompressExtension(int extension) => !UncompressedExtensions.Contains(extension);
 
         public static byte[] EncodeHelloOuterAAD(ClientHello hello, uint payloadLen)
         {
@@ -157,18 +169,6 @@ namespace Org.BouncyCastle.Tls.Ech
             var extStream = new MemoryStream(extensions);
             var extOutput = new MemoryStream();
             var outerExtOutput = new MemoryStream();
-
-            var oldExtensions = new Dictionary<int, byte[]>(hello.Extensions);
-
-            hello.Extensions.Clear();
-
-            foreach (var ext in oldExtensions)
-                if (!CompressExtension(ext.Key))
-                    hello.Extensions[ext.Key] = ext.Value;
-
-            foreach (var ext in oldExtensions)
-                if (!hello.Extensions.ContainsKey(ext.Key))
-                    hello.Extensions[ext.Key] = ext.Value;
 
             while (extStream.Position < extStream.Length)
             {
