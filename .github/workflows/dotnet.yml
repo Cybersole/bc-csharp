@@ -21,13 +21,13 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
     - name: Restore dependencies
-      run: dotnet restore -p:TargetFramework=net6.0
+      run: dotnet restore -p:TargetFramework=net8.0
     - name: Build
-      run: dotnet build --configuration Release --no-restore -p:TargetFramework=net6.0
+      run: dotnet build --configuration Release --no-restore -p:TargetFramework=net8.0
     - name: Pack
-      run: dotnet pack --configuration Release --no-build --output . -p:TargetFramework=net6.0
+      run: dotnet pack --configuration Release --no-build --output . -p:TargetFramework=net8.0
     - name: Push
       run: dotnet nuget push *.nupkg --source https://nuget.pkg.github.com/Cybersole/index.json --api-key ${GITHUB_TOKEN}
       env:
