@@ -4,9 +4,11 @@ using System.IO;
 
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.CryptoPro;
+using Org.BouncyCastle.Asn1.EdEC;
 using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Asn1.Oiw;
 using Org.BouncyCastle.Asn1.Pkcs;
+using Org.BouncyCastle.Asn1.Rosstandart;
 using Org.BouncyCastle.Asn1.TeleTrust;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Asn1.X9;
@@ -52,8 +54,8 @@ namespace Org.BouncyCastle.Pkcs
             new Dictionary<string, Asn1Encodable>(StringComparer.OrdinalIgnoreCase);
         internal static readonly Dictionary<DerObjectIdentifier, string> m_keyAlgorithms =
             new Dictionary<DerObjectIdentifier, string>();
-        internal static readonly Dictionary<DerObjectIdentifier, string> m_oids =
-            new Dictionary<DerObjectIdentifier, string>();
+        //internal static readonly Dictionary<DerObjectIdentifier, string> m_oids =
+        //    new Dictionary<DerObjectIdentifier, string>();
         internal static readonly HashSet<DerObjectIdentifier> m_noParams = new HashSet<DerObjectIdentifier>();
 
         static Pkcs10CertificationRequest()
@@ -120,33 +122,42 @@ namespace Org.BouncyCastle.Pkcs
             m_algorithms.Add("GOST3411WITHECGOST3410", CryptoProObjectIdentifiers.GostR3411x94WithGostR3410x2001);
             m_algorithms.Add("GOST3411WITHECGOST3410-2001", CryptoProObjectIdentifiers.GostR3411x94WithGostR3410x2001);
             m_algorithms.Add("GOST3411WITHGOST3410-2001", CryptoProObjectIdentifiers.GostR3411x94WithGostR3410x2001);
+            m_algorithms.Add("GOST3411-2012-256WITHECGOST3410", RosstandartObjectIdentifiers.id_tc26_signwithdigest_gost_3410_12_256);
+            m_algorithms.Add("GOST3411-2012-256WITHECGOST3410-2012-256", RosstandartObjectIdentifiers.id_tc26_signwithdigest_gost_3410_12_256);
+            m_algorithms.Add("GOST3411-2012-512WITHECGOST3410", RosstandartObjectIdentifiers.id_tc26_signwithdigest_gost_3410_12_512);
+            m_algorithms.Add("GOST3411-2012-512WITHECGOST3410-2012-512", RosstandartObjectIdentifiers.id_tc26_signwithdigest_gost_3410_12_512);
+            m_algorithms.Add("Ed25519", EdECObjectIdentifiers.id_Ed25519);
+            m_algorithms.Add("Ed448", EdECObjectIdentifiers.id_Ed448);
 
             //
             // reverse mappings
             //
-            m_oids.Add(PkcsObjectIdentifiers.Sha1WithRsaEncryption, "SHA1WITHRSA");
-            m_oids.Add(PkcsObjectIdentifiers.Sha224WithRsaEncryption, "SHA224WITHRSA");
-            m_oids.Add(PkcsObjectIdentifiers.Sha256WithRsaEncryption, "SHA256WITHRSA");
-            m_oids.Add(PkcsObjectIdentifiers.Sha384WithRsaEncryption, "SHA384WITHRSA");
-            m_oids.Add(PkcsObjectIdentifiers.Sha512WithRsaEncryption, "SHA512WITHRSA");
-            m_oids.Add(PkcsObjectIdentifiers.Sha512_224WithRSAEncryption, "SHA512(224)WITHRSA");
-            m_oids.Add(PkcsObjectIdentifiers.Sha512_256WithRSAEncryption, "SHA512(256)WITHRSA");
-            m_oids.Add(CryptoProObjectIdentifiers.GostR3411x94WithGostR3410x94, "GOST3411WITHGOST3410");
-            m_oids.Add(CryptoProObjectIdentifiers.GostR3411x94WithGostR3410x2001, "GOST3411WITHECGOST3410");
+            //m_oids.Add(PkcsObjectIdentifiers.Sha1WithRsaEncryption, "SHA1WITHRSA");
+            //m_oids.Add(PkcsObjectIdentifiers.Sha224WithRsaEncryption, "SHA224WITHRSA");
+            //m_oids.Add(PkcsObjectIdentifiers.Sha256WithRsaEncryption, "SHA256WITHRSA");
+            //m_oids.Add(PkcsObjectIdentifiers.Sha384WithRsaEncryption, "SHA384WITHRSA");
+            //m_oids.Add(PkcsObjectIdentifiers.Sha512WithRsaEncryption, "SHA512WITHRSA");
+            //m_oids.Add(PkcsObjectIdentifiers.Sha512_224WithRSAEncryption, "SHA512(224)WITHRSA");
+            //m_oids.Add(PkcsObjectIdentifiers.Sha512_256WithRSAEncryption, "SHA512(256)WITHRSA");
+            //m_oids.Add(CryptoProObjectIdentifiers.GostR3411x94WithGostR3410x94, "GOST3411WITHGOST3410");
+            //m_oids.Add(CryptoProObjectIdentifiers.GostR3411x94WithGostR3410x2001, "GOST3411WITHECGOST3410");
 
-            m_oids.Add(PkcsObjectIdentifiers.MD5WithRsaEncryption, "MD5WITHRSA");
-            m_oids.Add(PkcsObjectIdentifiers.MD2WithRsaEncryption, "MD2WITHRSA");
-            m_oids.Add(X9ObjectIdentifiers.IdDsaWithSha1, "SHA1WITHDSA");
-            m_oids.Add(X9ObjectIdentifiers.ECDsaWithSha1, "SHA1WITHECDSA");
-            m_oids.Add(X9ObjectIdentifiers.ECDsaWithSha224, "SHA224WITHECDSA");
-            m_oids.Add(X9ObjectIdentifiers.ECDsaWithSha256, "SHA256WITHECDSA");
-            m_oids.Add(X9ObjectIdentifiers.ECDsaWithSha384, "SHA384WITHECDSA");
-            m_oids.Add(X9ObjectIdentifiers.ECDsaWithSha512, "SHA512WITHECDSA");
-            m_oids.Add(OiwObjectIdentifiers.MD5WithRsa, "MD5WITHRSA");
-            m_oids.Add(OiwObjectIdentifiers.Sha1WithRsa, "SHA1WITHRSA");
-            m_oids.Add(OiwObjectIdentifiers.DsaWithSha1, "SHA1WITHDSA");
-            m_oids.Add(NistObjectIdentifiers.DsaWithSha224, "SHA224WITHDSA");
-            m_oids.Add(NistObjectIdentifiers.DsaWithSha256, "SHA256WITHDSA");
+            //m_oids.Add(PkcsObjectIdentifiers.MD5WithRsaEncryption, "MD5WITHRSA");
+            //m_oids.Add(PkcsObjectIdentifiers.MD2WithRsaEncryption, "MD2WITHRSA");
+            //m_oids.Add(X9ObjectIdentifiers.IdDsaWithSha1, "SHA1WITHDSA");
+            //m_oids.Add(X9ObjectIdentifiers.ECDsaWithSha1, "SHA1WITHECDSA");
+            //m_oids.Add(X9ObjectIdentifiers.ECDsaWithSha224, "SHA224WITHECDSA");
+            //m_oids.Add(X9ObjectIdentifiers.ECDsaWithSha256, "SHA256WITHECDSA");
+            //m_oids.Add(X9ObjectIdentifiers.ECDsaWithSha384, "SHA384WITHECDSA");
+            //m_oids.Add(X9ObjectIdentifiers.ECDsaWithSha512, "SHA512WITHECDSA");
+            //m_oids.Add(OiwObjectIdentifiers.MD5WithRsa, "MD5WITHRSA");
+            //m_oids.Add(OiwObjectIdentifiers.Sha1WithRsa, "SHA1WITHRSA");
+            //m_oids.Add(OiwObjectIdentifiers.DsaWithSha1, "SHA1WITHDSA");
+            //m_oids.Add(NistObjectIdentifiers.DsaWithSha224, "SHA224WITHDSA");
+            //m_oids.Add(NistObjectIdentifiers.DsaWithSha256, "SHA256WITHDSA");
+
+            //m_oids.Add(EdECObjectIdentifiers.id_Ed25519, "Ed25519");
+            //m_oids.Add(EdECObjectIdentifiers.id_Ed448, "Ed448");
 
             //
             // key types
@@ -175,6 +186,12 @@ namespace Org.BouncyCastle.Pkcs
             m_noParams.Add(CryptoProObjectIdentifiers.GostR3411x94WithGostR3410x2001);
 
             //
+            // RFC 8410
+            //
+            m_noParams.Add(EdECObjectIdentifiers.id_Ed25519);
+            m_noParams.Add(EdECObjectIdentifiers.id_Ed448);
+
+            //
             // explicit params
             //
             AlgorithmIdentifier sha1AlgId = new AlgorithmIdentifier(OiwObjectIdentifiers.IdSha1, DerNull.Instance);
@@ -201,7 +218,7 @@ namespace Org.BouncyCastle.Pkcs
                 hashAlgId,
                 new AlgorithmIdentifier(PkcsObjectIdentifiers.IdMgf1, hashAlgId),
                 new DerInteger(saltSize),
-                new DerInteger(1));
+                DerInteger.One);
         }
 
         protected Pkcs10CertificationRequest()
@@ -231,9 +248,9 @@ namespace Org.BouncyCastle.Pkcs
         /// </summary>
         ///<param name="signatureAlgorithm">Name of Sig Alg.</param>
         /// <param name="subject">X509Name of subject eg OU="My unit." O="My Organisatioin" C="au" </param>
-        /// <param name="publicKey">Public Key to be included in cert reqest.</param>
-        /// <param name="attributes">ASN1Set of Attributes.</param>
-        /// <param name="signingKey">Matching Private key for nominated (above) public key to be used to sign the request.</param>
+        /// <param name="publicKey">Public key to be included in cert request.</param>
+        /// <param name="attributes">Asn1Set of Attributes.</param>
+        /// <param name="signingKey">Matching private key for nominated (above) public key to be used to sign the request.</param>
         public Pkcs10CertificationRequest(
             string signatureAlgorithm,
             X509Name subject,
@@ -247,10 +264,28 @@ namespace Org.BouncyCastle.Pkcs
         /// <summary>
         /// Instantiate a Pkcs10CertificationRequest object with the necessary credentials.
         /// </summary>
+        ///<param name="signatureAlgorithm">Name of Sig Alg.</param>
+        /// <param name="subject">X509Name of subject eg OU="My unit." O="My Organisatioin" C="au" </param>
+        /// <param name="pubInfo">SubjectPublicKeyInfo to be included in cert request.</param>
+        /// <param name="attributes">Asn1Set of Attributes.</param>
+        /// <param name="signingKey">Matching private key for nominated (above) public key to be used to sign the request.</param>
+        public Pkcs10CertificationRequest(
+            string signatureAlgorithm,
+            X509Name subject,
+            SubjectPublicKeyInfo pubInfo,
+            Asn1Set attributes,
+            AsymmetricKeyParameter signingKey)
+            : this(new Asn1SignatureFactory(signatureAlgorithm, signingKey), subject, pubInfo, attributes)
+        {
+        }
+
+        /// <summary>
+        /// Instantiate a Pkcs10CertificationRequest object with the necessary credentials.
+        /// </summary>
         ///<param name="signatureFactory">The factory for signature calculators to sign the PKCS#10 request with.</param>
         /// <param name="subject">X509Name of subject eg OU="My unit." O="My Organisatioin" C="au" </param>
-        /// <param name="publicKey">Public Key to be included in cert reqest.</param>
-        /// <param name="attributes">ASN1Set of Attributes.</param>
+        /// <param name="publicKey">Public key to be included in cert request.</param>
+        /// <param name="attributes">Asn1Set of Attributes.</param>
         public Pkcs10CertificationRequest(
             ISignatureFactory signatureFactory,
             X509Name subject,
@@ -269,12 +304,41 @@ namespace Org.BouncyCastle.Pkcs
             Init(signatureFactory, subject, publicKey, attributes);
         }
 
+        /// <summary>
+        /// Instantiate a Pkcs10CertificationRequest object with the necessary credentials.
+        /// </summary>
+        ///<param name="signatureFactory">The factory for signature calculators to sign the PKCS#10 request with.</param>
+        /// <param name="subject">X509Name of subject eg OU="My unit." O="My Organisatioin" C="au" </param>
+        /// <param name="pubInfo">SubjectPublicKeyInfo to be included in cert request.</param>
+        /// <param name="attributes">Asn1Set of Attributes.</param>
+        public Pkcs10CertificationRequest(
+            ISignatureFactory signatureFactory,
+            X509Name subject,
+            SubjectPublicKeyInfo pubInfo,
+            Asn1Set attributes)
+        {
+            if (signatureFactory == null)
+                throw new ArgumentNullException("signatureFactory");
+            if (subject == null)
+                throw new ArgumentNullException("subject");
+            if (pubInfo == null)
+                throw new ArgumentNullException("pubInfo");
+
+            Init(signatureFactory, subject, pubInfo, attributes);
+        }
+
         private void Init(ISignatureFactory signatureFactory, X509Name subject, AsymmetricKeyParameter publicKey,
             Asn1Set attributes)
         {
-            this.sigAlgId = (AlgorithmIdentifier)signatureFactory.AlgorithmDetails;
-
             SubjectPublicKeyInfo pubInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(publicKey);
+
+            Init(signatureFactory, subject, pubInfo, attributes);
+        }
+
+        private void Init(ISignatureFactory signatureFactory, X509Name subject, SubjectPublicKeyInfo pubInfo,
+            Asn1Set attributes)
+        {
+            this.sigAlgId = (AlgorithmIdentifier)signatureFactory.AlgorithmDetails;
 
             this.reqInfo = new CertificationRequestInfo(subject, pubInfo, attributes);
 

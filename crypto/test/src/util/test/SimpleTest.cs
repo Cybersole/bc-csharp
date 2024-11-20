@@ -10,6 +10,8 @@ namespace Org.BouncyCastle.Utilities.Test
     public abstract class SimpleTest
         : ITest
     {
+        private static readonly string DataDirName = "bc-test-data";
+
         internal static readonly string NewLine = Environment.NewLine;
 
         public abstract string Name { get; }
@@ -132,6 +134,21 @@ namespace Org.BouncyCastle.Utilities.Test
             int expectedValue = 1 << ((bitNo | 7) - (bitNo & 7));
             if (expectedValue != value)
                 throw new ArgumentException("bit value " + bitNo + " wrong");
+        }
+
+        internal static Stream FindTestResource(string homeDir, string fileName)
+        {
+            string wrkDirPath = Directory.GetCurrentDirectory();
+            string dataDirPath;
+
+            while (!Directory.Exists(dataDirPath = Path.Combine(wrkDirPath, DataDirName)))
+            {
+                wrkDirPath = Path.GetDirectoryName(wrkDirPath) ??
+                    throw new DirectoryNotFoundException("Test data directory " + DataDirName + " not found." + NewLine +
+                        "Test data available from: https://github.com/bcgit/bc-test-data.git");
+            }
+
+            return File.OpenRead(Path.Combine(dataDirPath, homeDir, fileName));
         }
     }
 }

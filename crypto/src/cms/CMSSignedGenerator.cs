@@ -2,15 +2,8 @@ using System;
 using System.Collections.Generic;
 
 using Org.BouncyCastle.Asn1;
-using Org.BouncyCastle.Asn1.BC;
-using Org.BouncyCastle.Asn1.Bsi;
 using Org.BouncyCastle.Asn1.Cms;
 using Org.BouncyCastle.Asn1.CryptoPro;
-using Org.BouncyCastle.Asn1.Eac;
-using Org.BouncyCastle.Asn1.EdEC;
-using Org.BouncyCastle.Asn1.GM;
-using Org.BouncyCastle.Asn1.Isara;
-using Org.BouncyCastle.Asn1.Misc;
 using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Asn1.Oiw;
 using Org.BouncyCastle.Asn1.Pkcs;
@@ -82,8 +75,7 @@ namespace Org.BouncyCastle.Cms
         internal List<Asn1Encodable> _certs = new List<Asn1Encodable>();
         internal List<Asn1Encodable> _crls = new List<Asn1Encodable>();
         internal IList<SignerInformation> _signers = new List<SignerInformation>();
-        internal IDictionary<string, byte[]> m_digests =
-            new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+        internal IDictionary<DerObjectIdentifier, byte[]> m_digests = new Dictionary<DerObjectIdentifier, byte[]>();
         internal bool _useDerForCerts = false;
         internal bool _useDerForCrls = false;
 
@@ -128,51 +120,34 @@ namespace Org.BouncyCastle.Cms
                 : DerSet.FromVector(attr.ToAsn1EncodableVector());
         }
 
-        public void AddAttributeCertificate(X509V2AttributeCertificate attrCert)
-        {
-            _certs.Add(new DerTaggedObject(false, 2, attrCert.AttributeCertificate));
-        }
+        public void AddAttributeCertificate(X509V2AttributeCertificate attrCert) =>
+            CmsUtilities.CollectAttributeCertificate(_certs, attrCert);
 
-        public void AddAttributeCertificates(IStore<X509V2AttributeCertificate> attrCertStore)
-        {
-            _certs.AddRange(CmsUtilities.GetAttributeCertificatesFromStore(attrCertStore));
-        }
+        public void AddAttributeCertificates(IStore<X509V2AttributeCertificate> attrCertStore) =>
+            CmsUtilities.CollectAttributeCertificates(_certs, attrCertStore);
 
-        public void AddCertificate(X509Certificate cert)
-        {
-            _certs.Add(cert.CertificateStructure);
-        }
+        public void AddCertificate(X509Certificate cert) => CmsUtilities.CollectCertificate(_certs, cert);
 
-        public void AddCertificates(IStore<X509Certificate> certStore)
-        {
-            _certs.AddRange(CmsUtilities.GetCertificatesFromStore(certStore));
-        }
+        public void AddCertificates(IStore<X509Certificate> certStore) =>
+            CmsUtilities.CollectCertificates(_certs, certStore);
 
-        public void AddCrl(X509Crl crl)
-        {
-            _crls.Add(crl.CertificateList);
-        }
+        public void AddCrl(X509Crl crl) => CmsUtilities.CollectCrl(_crls, crl);
 
-        public void AddCrls(IStore<X509Crl> crlStore)
-        {
-            _crls.AddRange(CmsUtilities.GetCrlsFromStore(crlStore));
-        }
+        public void AddCrls(IStore<X509Crl> crlStore) => CmsUtilities.CollectCrls(_crls, crlStore);
 
-        public void AddOtherRevocationInfo(OtherRevocationInfoFormat otherRevocationInfo)
-        {
-            CmsUtilities.ValidateOtherRevocationInfo(otherRevocationInfo);
-            _crls.Add(new DerTaggedObject(false, 1, otherRevocationInfo));
-        }
+        public void AddOtherRevocationInfo(OtherRevocationInfoFormat otherRevocationInfo) =>
+            CmsUtilities.CollectOtherRevocationInfo(_crls, otherRevocationInfo);
 
-        public void AddOtherRevocationInfos(IStore<OtherRevocationInfoFormat> otherRevocationInfoStore)
-        {
-            _crls.AddRange(CmsUtilities.GetOtherRevocationInfosFromStore(otherRevocationInfoStore));
-        }
+        public void AddOtherRevocationInfo(DerObjectIdentifier otherRevInfoFormat, Asn1Encodable otherRevInfo) =>
+            CmsUtilities.CollectOtherRevocationInfo(_crls, otherRevInfoFormat, otherRevInfo);
+
+        public void AddOtherRevocationInfos(IStore<OtherRevocationInfoFormat> otherRevocationInfoStore) =>
+            CmsUtilities.CollectOtherRevocationInfos(_crls, otherRevocationInfoStore);
 
         public void AddOtherRevocationInfos(DerObjectIdentifier otherRevInfoFormat,
             IStore<Asn1Encodable> otherRevInfoStore)
         {
-            _crls.AddRange(CmsUtilities.GetOtherRevocationInfosFromStore(otherRevInfoStore, otherRevInfoFormat));
+            CmsUtilities.CollectOtherRevocationInfos(_crls, otherRevInfoFormat, otherRevInfoStore);
         }
 
         /**
@@ -197,7 +172,12 @@ namespace Org.BouncyCastle.Cms
 		 */
         public IDictionary<string, byte[]> GetGeneratedDigests()
         {
-            return new Dictionary<string, byte[]>(m_digests, StringComparer.OrdinalIgnoreCase);
+            var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in m_digests)
+            {
+                result.Add(entry.Key.GetID(), entry.Value);
+            }
+            return result;
         }
 
         public bool UseDerForCerts

@@ -62,7 +62,7 @@ namespace Org.BouncyCastle.Tls
         public const int brainpoolP512r1tls13 = 33;
 
         /*
-         * draft-smyshlyaev-tls12-gost-suites-10
+         * RFC 9189
          */
         public const int GC256A = 34;
         public const int GC256B = 35;
@@ -232,9 +232,7 @@ namespace Org.BouncyCastle.Tls
         public static string GetCurveName(int namedGroup)
         {
             if (RefersToASpecificCurve(namedGroup))
-            {
                 return CurveNames[namedGroup - sect163k1];
-            }
 
             return null;
         }

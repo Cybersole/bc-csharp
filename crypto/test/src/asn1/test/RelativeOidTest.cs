@@ -40,10 +40,12 @@ namespace Org.BouncyCastle.Asn1.Tests
 
         private void CheckValid(string oid)
         {
+            Assert.True(Asn1RelativeOid.TryFromID(oid, out var ignore));
+
             Asn1RelativeOid o = new Asn1RelativeOid(oid);
 			o = (Asn1RelativeOid)Asn1Object.FromByteArray(o.GetEncoded());
 
-			if (!o.Id.Equals(oid))
+			if (!o.GetID().Equals(oid))
 			{
                 Fail("failed relative oid check for " + oid);
             }
@@ -51,6 +53,8 @@ namespace Org.BouncyCastle.Asn1.Tests
 
         private void CheckInvalid(string oid)
         {
+            Assert.False(Asn1RelativeOid.TryFromID(oid, out var ignore));
+
             try
             {
                 new Asn1RelativeOid(oid);
@@ -65,7 +69,7 @@ namespace Org.BouncyCastle.Asn1.Tests
         private void BranchCheck(string stem, string branch)
         {
             string expected = stem + "." + branch;
-            string actual = new Asn1RelativeOid(stem).Branch(branch).Id;
+            string actual = new Asn1RelativeOid(stem).Branch(branch).GetID();
 
             if (expected != actual)
             {

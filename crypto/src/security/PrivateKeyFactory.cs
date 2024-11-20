@@ -17,7 +17,7 @@ using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Pkcs;
-using Org.BouncyCastle.Utilities;
+using Org.BouncyCastle.Pqc.Asn1;
 
 namespace Org.BouncyCastle.Security
 {
@@ -67,8 +67,7 @@ namespace Org.BouncyCastle.Security
             //			else if (algOid.Equals(X9ObjectIdentifiers.DHPublicNumber))
             else if (algOid.Equals(PkcsObjectIdentifiers.DhKeyAgreement))
             {
-                DHParameter para = new DHParameter(
-                    Asn1Sequence.GetInstance(algID.Parameters.ToAsn1Object()));
+                DHParameter para = DHParameter.GetInstance(algID.Parameters);
                 DerInteger derX = (DerInteger)keyInfo.ParsePrivateKey();
 
                 BigInteger lVal = para.L;
@@ -79,8 +78,7 @@ namespace Org.BouncyCastle.Security
             }
             else if (algOid.Equals(OiwObjectIdentifiers.ElGamalAlgorithm))
             {
-                ElGamalParameter para = new ElGamalParameter(
-                    Asn1Sequence.GetInstance(algID.Parameters.ToAsn1Object()));
+                ElGamalParameter para = ElGamalParameter.GetInstance(algID.Parameters);
                 DerInteger derX = (DerInteger)keyInfo.ParsePrivateKey();
 
                 return new ElGamalPrivateKeyParameters(
@@ -103,28 +101,22 @@ namespace Org.BouncyCastle.Security
             }
             else if (algOid.Equals(X9ObjectIdentifiers.IdECPublicKey))
             {
-                X962Parameters para = X962Parameters.GetInstance(algID.Parameters.ToAsn1Object());
+                ECPrivateKeyStructure ecPrivateKey = ECPrivateKeyStructure.GetInstance(keyInfo.ParsePrivateKey());
 
-                X9ECParameters x9;
-                if (para.IsNamedCurve)
+                X962Parameters parameters = X962Parameters.GetInstance(algID.Parameters.ToAsn1Object());
+                if (parameters.IsNamedCurve)
                 {
-                    x9 = ECKeyPairGenerator.FindECCurveByOid((DerObjectIdentifier)para.Parameters);
-                }
-                else
-                {
-                    x9 = new X9ECParameters((Asn1Sequence)para.Parameters);
-                }
-
-                ECPrivateKeyStructure ec = ECPrivateKeyStructure.GetInstance(keyInfo.ParsePrivateKey());
-                BigInteger d = ec.GetKey();
-
-                if (para.IsNamedCurve)
-                {
-                    return new ECPrivateKeyParameters("EC", d, (DerObjectIdentifier)para.Parameters);
+                    return new ECPrivateKeyParameters(
+                        algorithm: "EC",
+                        d: ecPrivateKey.GetKey(),
+                        publicKeyParamSet: DerObjectIdentifier.GetInstance(parameters.Parameters));
                 }
 
-                ECDomainParameters dParams = new ECDomainParameters(x9.Curve, x9.G, x9.N, x9.H, x9.GetSeed());
-                return new ECPrivateKeyParameters(d, dParams);
+                X9ECParameters x9 = X9ECParameters.GetInstance(parameters.Parameters);
+                return new ECPrivateKeyParameters(
+                    algorithm: "EC",
+                    d: ecPrivateKey.GetKey(),
+                    parameters: new ECDomainParameters(x9));
             }
             else if (algOid.Equals(CryptoProObjectIdentifiers.GostR3410x2001) ||
                      algOid.Equals(RosstandartObjectIdentifiers.id_tc26_gost_3410_12_512) ||
@@ -351,7 +343,45 @@ namespace Org.BouncyCastle.Security
                         gostParams.PublicKeyParamSet,
                         gostParams.DigestParamSet,
                         gostParams.EncryptionParamSet));
+            }
+            else if (MLDsaParameters.ByOid.TryGetValue(algOid, out MLDsaParameters mlDsaParameters))
+            {
+                // TODO[pqc] Support ASN.1 sequence (see bc-java)?
 
+                var encoding = Asn1OctetString.GetInstance(keyInfo.ParsePrivateKey());
+
+                // TODO Add support?
+                //DerBitString publicKeyData = keyInfo.PublicKey;
+                //MLDsaPublicKeyParameters pubKey = null;
+                //if (publicKeyData != null)
+                //{
+                //    pubKey = PublicKeyFactory.GetMLDsaPublicKey(mlDsaParameters, publicKeyData);
+                //}
+
+                return new MLDsaPrivateKeyParameters(mlDsaParameters, encoding.GetOctets());
+            }
+            else if (SlhDsaParameters.ByOid.TryGetValue(algOid, out SlhDsaParameters slhDsaParameters))
+            {
+                Asn1Encodable obj = keyInfo.ParsePrivateKey();
+
+                if (obj is Asn1Sequence keySeq)
+                {
+                    // TODO[pqc] Check whether these ASN.1 formats should still be supported - rename if so
+#pragma warning disable CS0618 // Type or member is obsolete
+                    SphincsPlusPrivateKey spKey = SphincsPlusPrivateKey.GetInstance(keySeq);
+
+                    SphincsPlusPublicKey publicKey = spKey.PublicKey;
+
+                    return new SlhDsaPrivateKeyParameters(slhDsaParameters, spKey.GetSkseed(), spKey.GetSkprf(),
+                        publicKey.GetPkseed(), publicKey.GetPkroot());
+#pragma warning restore CS0618 // Type or member is obsolete
+                }
+                else
+                {
+                    Asn1OctetString oct = Asn1OctetString.GetInstance(obj);
+
+                    return new SlhDsaPrivateKeyParameters(slhDsaParameters, oct.GetOctets());
+                }
             }
             else
             {

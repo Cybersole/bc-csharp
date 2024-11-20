@@ -6,6 +6,7 @@ using Org.BouncyCastle.Asn1.CryptoPro;
 using Org.BouncyCastle.Asn1.EdEC;
 using Org.BouncyCastle.Asn1.Iana;
 using Org.BouncyCastle.Asn1.Kisa;
+using Org.BouncyCastle.Asn1.Misc;
 using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Asn1.Nsri;
 using Org.BouncyCastle.Asn1.Ntt;
@@ -16,6 +17,7 @@ using Org.BouncyCastle.Asn1.Sec;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Pqc.Crypto.MLKem;
 using Org.BouncyCastle.Utilities;
 using Org.BouncyCastle.Utilities.Collections;
 
@@ -68,7 +70,12 @@ namespace Org.BouncyCastle.Security
                 NistObjectIdentifiers.IdAes256Wrap,
                 NistObjectIdentifiers.IdAes256WrapPad);
             AddKgAlgorithm("BLOWFISH",
-                "1.3.6.1.4.1.3029.1.2");
+                /*
+                 * TODO[api] Incorrect version of cryptlib_algorithm_blowfish_CBC
+                 * Remove at major version update and delete bad test data "pbes2.bf-cbc.key"
+                 */
+                "1.3.6.1.4.1.3029.1.2",
+                MiscObjectIdentifiers.cryptlib_algorithm_blowfish_CBC);
             AddKgAlgorithm("CAMELLIA",
                 "CAMELLIAWRAP");
             AddKgAlgorithm("ARIA");
@@ -115,7 +122,7 @@ namespace Org.BouncyCastle.Security
                 NttObjectIdentifiers.IdCamellia256Cbc,
                 NttObjectIdentifiers.IdCamellia256Wrap);
             AddKgAlgorithm("CAST5",
-                "1.2.840.113533.7.66.10");
+                MiscObjectIdentifiers.cast5CBC);
             AddKgAlgorithm("CAST6");
             AddKgAlgorithm("CHACHA");
             AddKgAlgorithm("CHACHA7539",
@@ -141,14 +148,14 @@ namespace Org.BouncyCastle.Security
             AddKgAlgorithm("HC128");
             AddKgAlgorithm("HC256");
             AddKgAlgorithm("IDEA",
-                "1.3.6.1.4.1.188.7.1.1.2");
+                MiscObjectIdentifiers.as_sys_sec_alg_ideaCBC);
             AddKgAlgorithm("NOEKEON");
             AddKgAlgorithm("RC2",
                 PkcsObjectIdentifiers.RC2Cbc,
                 PkcsObjectIdentifiers.IdAlgCmsRC2Wrap);
             AddKgAlgorithm("RC4",
                 "ARC4",
-                "1.2.840.113549.3.4");
+                PkcsObjectIdentifiers.rc4);
             AddKgAlgorithm("RC5",
                 "RC5-32");
             AddKgAlgorithm("RC5-64");
@@ -189,8 +196,12 @@ namespace Org.BouncyCastle.Security
                 PkcsObjectIdentifiers.IdHmacWithSha384);
             AddHMacKeyGenerator("SHA512",
                 PkcsObjectIdentifiers.IdHmacWithSha512);
-            AddHMacKeyGenerator("SHA512/224");
-            AddHMacKeyGenerator("SHA512/256");
+            AddHMacKeyGenerator("SHA512/224",
+                PkcsObjectIdentifiers.IdHmacWithSha512_224);
+            AddHMacKeyGenerator("SHA512-224");
+            AddHMacKeyGenerator("SHA512/256",
+                PkcsObjectIdentifiers.IdHmacWithSha512_256);
+            AddHMacKeyGenerator("SHA512-256");
             AddHMacKeyGenerator("KECCAK224");
             AddHMacKeyGenerator("KECCAK256");
             AddHMacKeyGenerator("KECCAK288");
@@ -221,8 +232,16 @@ namespace Org.BouncyCastle.Security
                 "DIFFIEHELLMAN");
             AddKpgAlgorithm("DSA");
             AddKpgAlgorithm("EC",
-                // TODO Should this be an alias for ECDH?
-                X9ObjectIdentifiers.DHSinglePassStdDHSha1KdfScheme);
+                X9ObjectIdentifiers.DHSinglePassStdDHSha1KdfScheme,
+                SecObjectIdentifiers.dhSinglePass_stdDH_sha224kdf_scheme,
+                SecObjectIdentifiers.dhSinglePass_stdDH_sha256kdf_scheme,
+                SecObjectIdentifiers.dhSinglePass_stdDH_sha384kdf_scheme,
+                SecObjectIdentifiers.dhSinglePass_stdDH_sha512kdf_scheme,
+                X9ObjectIdentifiers.DHSinglePassCofactorDHSha1KdfScheme,
+                SecObjectIdentifiers.dhSinglePass_cofactorDH_sha224kdf_scheme,
+                SecObjectIdentifiers.dhSinglePass_cofactorDH_sha256kdf_scheme,
+                SecObjectIdentifiers.dhSinglePass_cofactorDH_sha384kdf_scheme,
+                SecObjectIdentifiers.dhSinglePass_cofactorDH_sha512kdf_scheme);
             AddKpgAlgorithm("ECDH",
                 "ECIES");
             AddKpgAlgorithm("ECDHC");
@@ -249,9 +268,12 @@ namespace Org.BouncyCastle.Security
             AddKpgAlgorithm("GOST3410",
                 "GOST-3410",
                 "GOST-3410-94");
+            AddKpgAlgorithm("ML-DSA");
+            AddKpgAlgorithm("ML-KEM");
             AddKpgAlgorithm("RSA",
-                "1.2.840.113549.1.1.1");
+                PkcsObjectIdentifiers.RsaEncryption);
             AddKpgAlgorithm("RSASSA-PSS");
+            AddKpgAlgorithm("SLH-DSA");
             AddKpgAlgorithm("X25519",
                 EdECObjectIdentifiers.id_X25519);
             AddKpgAlgorithm("X448",
@@ -265,10 +287,11 @@ namespace Org.BouncyCastle.Security
             AddDefaultKeySizeEntries(160, "HMACRIPEMD160", "HMACSHA1");
             AddDefaultKeySizeEntries(192, "AES", "AES192", "ARIA192", "CAMELLIA192", "DESEDE3", "HMACTIGER",
                 "RIJNDAEL", "SERPENT", "TNEPRES");
-            AddDefaultKeySizeEntries(224, "HMACSHA3-224", "HMACKECCAK224", "HMACSHA224", "HMACSHA512/224");
+            AddDefaultKeySizeEntries(224, "HMACSHA3-224", "HMACKECCAK224", "HMACSHA224", "HMACSHA512/224",
+                "HMACSHA512-224");
             AddDefaultKeySizeEntries(256, "AES256", "ARIA", "ARIA256", "CAMELLIA", "CAMELLIA256", "CAST6",
                 "CHACHA7539", "GOST28147", "HC256", "HMACGOST3411-2012-256", "HMACSHA3-256", "HMACKECCAK256",
-                "HMACSHA256", "HMACSHA512/256", "RC5-64", "RC6", "THREEFISH-256", "TWOFISH");
+                "HMACSHA256", "HMACSHA512/256", "HMACSHA512-256", "RC5-64", "RC6", "THREEFISH-256", "TWOFISH");
             AddDefaultKeySizeEntries(288, "HMACKECCAK288");
             AddDefaultKeySizeEntries(384, "HMACSHA3-384", "HMACKECCAK384", "HMACSHA384");
             AddDefaultKeySizeEntries(512, "HMACGOST3411-2012-512", "HMACSHA3-512", "HMACKECCAK512", "HMACSHA512",
@@ -390,8 +413,17 @@ namespace Org.BouncyCastle.Security
             if (canonicalName == "GOST3410")
                 return new Gost3410KeyPairGenerator();
 
+            if (canonicalName == "ML-DSA")
+                return new MLDsaKeyPairGenerator();
+
+            if (canonicalName == "ML-KEM")
+                return new MLKemKeyPairGenerator();
+
             if (canonicalName == "RSA" || canonicalName == "RSASSA-PSS")
                 return new RsaKeyPairGenerator();
+
+            if (canonicalName == "SLH-DSA")
+                return new SlhDsaKeyPairGenerator();
 
             if (canonicalName == "X25519")
                 return new X25519KeyPairGenerator();

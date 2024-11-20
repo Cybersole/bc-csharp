@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 
+using Org.BouncyCastle.Asn1.Misc;
 using Org.BouncyCastle.Asn1.Nist;
+using Org.BouncyCastle.Asn1.Oiw;
 using Org.BouncyCastle.Asn1.Pkcs;
 using Org.BouncyCastle.Asn1.X509;
-
-using Org.BouncyCastle.Utilities;
 
 namespace Org.BouncyCastle.Asn1.Smime
 {
@@ -28,46 +28,37 @@ namespace Org.BouncyCastle.Asn1.Smime
         public static readonly DerObjectIdentifier Aes256Cbc = NistObjectIdentifiers.IdAes256Cbc;
         public static readonly DerObjectIdentifier Aes192Cbc = NistObjectIdentifiers.IdAes192Cbc;
         public static readonly DerObjectIdentifier Aes128Cbc = NistObjectIdentifiers.IdAes128Cbc;
-        public static readonly DerObjectIdentifier IdeaCbc = new DerObjectIdentifier("1.3.6.1.4.1.188.7.1.1.2");
-        public static readonly DerObjectIdentifier Cast5Cbc = new DerObjectIdentifier("1.2.840.113533.7.66.10");
-        public static readonly DerObjectIdentifier DesCbc = new DerObjectIdentifier("1.3.14.3.2.7");
+        public static readonly DerObjectIdentifier IdeaCbc = MiscObjectIdentifiers.as_sys_sec_alg_ideaCBC;
+        public static readonly DerObjectIdentifier Cast5Cbc = MiscObjectIdentifiers.cast5CBC;
+        public static readonly DerObjectIdentifier DesCbc = OiwObjectIdentifiers.DesCbc;
         public static readonly DerObjectIdentifier DesEde3Cbc = PkcsObjectIdentifiers.DesEde3Cbc;
         public static readonly DerObjectIdentifier RC2Cbc = PkcsObjectIdentifiers.RC2Cbc;
 
-		private Asn1Sequence capabilities;
-
-		/**
-         * return an Attr object from the given object.
-         *
-         * @param o the object we want converted.
-         * @exception ArgumentException if the object cannot be converted.
-         */
-        public static SmimeCapabilities GetInstance(
-            object obj)
+        public static SmimeCapabilities GetInstance(object obj)
         {
-            if (obj == null || obj is SmimeCapabilities)
-            {
-                return (SmimeCapabilities) obj;
-            }
+            if (obj == null)
+                return null;
+            if (obj is SmimeCapabilities smimeCapabilities)
+                return smimeCapabilities;
 
-			if (obj is Asn1Sequence)
-            {
-                return new SmimeCapabilities((Asn1Sequence) obj);
-            }
+            // TODO[api] Remove this handler
+            if (obj is AttributeX509 attributeX509)
+                return new SmimeCapabilities((Asn1Sequence)attributeX509.AttrValues[0]);
 
-			if (obj is AttributeX509)
-            {
-                return new SmimeCapabilities(
-                    (Asn1Sequence)(((AttributeX509) obj).AttrValues[0]));
-            }
-
-            throw new ArgumentException("unknown object in factory: " + Platform.GetTypeName(obj), "obj");
+            return new SmimeCapabilities(Asn1Sequence.GetInstance(obj));
         }
 
-		public SmimeCapabilities(
-            Asn1Sequence seq)
+        public static SmimeCapabilities GetInstance(Asn1TaggedObject taggedObject, bool declaredExplicit) =>
+            new SmimeCapabilities(Asn1Sequence.GetInstance(taggedObject, declaredExplicit));
+
+        public static SmimeCapabilities GetTagged(Asn1TaggedObject taggedObject, bool declaredExplicit) =>
+            new SmimeCapabilities(Asn1Sequence.GetTagged(taggedObject, declaredExplicit));
+
+        private readonly Asn1Sequence m_capabilities;
+
+        public SmimeCapabilities(Asn1Sequence seq)
         {
-            capabilities = seq;
+            m_capabilities = seq ?? throw new ArgumentNullException(nameof(seq));
         }
 
         /**
@@ -82,15 +73,14 @@ namespace Org.BouncyCastle.Asn1.Smime
 			return list;
         }
 
-        private void DoGetCapabilitiesForOid(DerObjectIdentifier capability, IList<SmimeCapability> list)
+        private void DoGetCapabilitiesForOid(DerObjectIdentifier capability, List<SmimeCapability> list)
         {
-            foreach (object o in capabilities)
+            foreach (var element in m_capabilities)
             {
-                SmimeCapability cap = SmimeCapability.GetInstance(o);
-
-                if (capability == null || capability.Equals(cap.CapabilityID))
+                SmimeCapability smimeCapability = SmimeCapability.GetInstance(element);
+                if (smimeCapability.CapabilityID.Equals(capability))
                 {
-                    list.Add(cap);
+                    list.Add(smimeCapability);
                 }
             }
         }
@@ -101,9 +91,6 @@ namespace Org.BouncyCastle.Asn1.Smime
          * SMIMECapabilities ::= Sequence OF SMIMECapability
          * </pre>
          */
-        public override Asn1Object ToAsn1Object()
-        {
-            return capabilities;
-        }
+        public override Asn1Object ToAsn1Object() => m_capabilities;
     }
 }

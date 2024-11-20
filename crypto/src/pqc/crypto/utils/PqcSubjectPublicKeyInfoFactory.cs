@@ -8,14 +8,13 @@ using Org.BouncyCastle.Pqc.Asn1;
 using Org.BouncyCastle.Pqc.Crypto.Bike;
 using Org.BouncyCastle.Pqc.Crypto.Cmce;
 using Org.BouncyCastle.Pqc.Crypto.Crystals.Dilithium;
-using Org.BouncyCastle.Pqc.Crypto.Crystals.Kyber;
 using Org.BouncyCastle.Pqc.Crypto.Falcon;
 using Org.BouncyCastle.Pqc.Crypto.Frodo;
 using Org.BouncyCastle.Pqc.Crypto.Hqc;
 using Org.BouncyCastle.Pqc.Crypto.Lms;
+using Org.BouncyCastle.Pqc.Crypto.MLKem;
 using Org.BouncyCastle.Pqc.Crypto.Picnic;
 using Org.BouncyCastle.Pqc.Crypto.Saber;
-using Org.BouncyCastle.Pqc.Crypto.Sike;
 using Org.BouncyCastle.Pqc.Crypto.SphincsPlus;
 using Org.BouncyCastle.Utilities;
 
@@ -54,6 +53,7 @@ namespace Org.BouncyCastle.Pqc.Crypto.Utilities
                 AlgorithmIdentifier algorithmIdentifier = new AlgorithmIdentifier(PkcsObjectIdentifiers.IdAlgHssLmsHashsig);
                 return new SubjectPublicKeyInfo(algorithmIdentifier, new DerOctetString(encoding));
             }
+#pragma warning disable CS0618 // Type or member is obsolete
             if (publicKey is SphincsPlusPublicKeyParameters sphincsPlusPublicKeyParameters)
             {
                 byte[] encoding = sphincsPlusPublicKeyParameters.GetEncoded();
@@ -62,6 +62,7 @@ namespace Org.BouncyCastle.Pqc.Crypto.Utilities
                     PqcUtilities.SphincsPlusOidLookup(sphincsPlusPublicKeyParameters.Parameters));
                 return new SubjectPublicKeyInfo(algorithmIdentifier, encoding);
             }
+#pragma warning restore CS0618 // Type or member is obsolete
             if (publicKey is CmcePublicKeyParameters cmcePublicKeyParameters)
             {
                 byte[] encoding = cmcePublicKeyParameters.GetEncoded();
@@ -99,16 +100,6 @@ namespace Org.BouncyCastle.Pqc.Crypto.Utilities
                     PqcUtilities.PicnicOidLookup(picnicPublicKeyParameters.Parameters));
                 return new SubjectPublicKeyInfo(algorithmIdentifier, new DerOctetString(encoding));
             }
-#pragma warning disable CS0618 // Type or member is obsolete
-            if (publicKey is SikePublicKeyParameters sikePublicKeyParameters)
-            {
-                byte[] encoding = sikePublicKeyParameters.GetEncoded();
-
-                AlgorithmIdentifier algorithmIdentifier = new AlgorithmIdentifier(
-                    PqcUtilities.SikeOidLookup(sikePublicKeyParameters.Parameters));
-                return new SubjectPublicKeyInfo(algorithmIdentifier, new DerOctetString(encoding));
-            }
-#pragma warning restore CS0618 // Type or member is obsolete
             if (publicKey is FalconPublicKeyParameters falconPublicKeyParameters)
             {
                 byte[] keyEnc = falconPublicKeyParameters.GetEncoded();
@@ -121,13 +112,14 @@ namespace Org.BouncyCastle.Pqc.Crypto.Utilities
                     PqcUtilities.FalconOidLookup(falconPublicKeyParameters.Parameters));
                 return new SubjectPublicKeyInfo(algorithmIdentifier, encoding);
             }
-            if (publicKey is KyberPublicKeyParameters kyberPublicKeyParameters)
+            if (publicKey is MLKemPublicKeyParameters mlKemKey)
             {
                 AlgorithmIdentifier algorithmIdentifier = new AlgorithmIdentifier(
-                    PqcUtilities.KyberOidLookup(kyberPublicKeyParameters.Parameters));
+                    PqcUtilities.MLKemOidLookup(mlKemKey.Parameters));
 
-                return new SubjectPublicKeyInfo(algorithmIdentifier, kyberPublicKeyParameters.GetEncoded());
+                return new SubjectPublicKeyInfo(algorithmIdentifier, mlKemKey.GetEncoded());
             }
+#pragma warning disable CS0618 // Type or member is obsolete
             if (publicKey is DilithiumPublicKeyParameters dilithiumPublicKeyParameters)
             {
                 AlgorithmIdentifier algorithmIdentifier = new AlgorithmIdentifier(
@@ -135,6 +127,7 @@ namespace Org.BouncyCastle.Pqc.Crypto.Utilities
 
                 return new SubjectPublicKeyInfo(algorithmIdentifier, dilithiumPublicKeyParameters.GetEncoded());
             }
+#pragma warning restore CS0618 // Type or member is obsolete
             if (publicKey is BikePublicKeyParameters bikePublicKeyParameters)
             { 
                 byte[] encoding = bikePublicKeyParameters.GetEncoded();

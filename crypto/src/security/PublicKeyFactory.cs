@@ -6,6 +6,7 @@ using Org.BouncyCastle.Asn1.Cryptlib;
 using Org.BouncyCastle.Asn1.CryptoPro;
 using Org.BouncyCastle.Asn1.EdEC;
 using Org.BouncyCastle.Asn1.Gnu;
+using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Asn1.Oiw;
 using Org.BouncyCastle.Asn1.Pkcs;
 using Org.BouncyCastle.Asn1.Rosstandart;
@@ -102,8 +103,7 @@ namespace Org.BouncyCastle.Security
             }
             else if (algOid.Equals(OiwObjectIdentifiers.ElGamalAlgorithm))
             {
-                ElGamalParameter para = new ElGamalParameter(
-                    Asn1Sequence.GetInstance(algID.Parameters.ToAsn1Object()));
+                ElGamalParameter para = ElGamalParameter.GetInstance(algID.Parameters);
                 DerInteger derY = (DerInteger)keyInfo.ParsePublicKey();
 
                 return new ElGamalPublicKeyParameters(
@@ -136,7 +136,7 @@ namespace Org.BouncyCastle.Security
                 }
                 else
                 {
-                    x9 = new X9ECParameters((Asn1Sequence)para.Parameters);
+                    x9 = X9ECParameters.GetInstance(para.Parameters);
                 }
 
                 Asn1OctetString key = new DerOctetString(keyInfo.PublicKey.GetBytes());
@@ -274,9 +274,46 @@ namespace Org.BouncyCastle.Security
 
                 return new ECPublicKeyParameters(q, ecDomainParameters);
             }
+            else if (MLDsaParameters.ByOid.TryGetValue(algOid, out MLDsaParameters mlDsaParameters))
+            {
+                return GetMLDsaPublicKey(mlDsaParameters, keyInfo.PublicKey);
+            }
+            else if (SlhDsaParameters.ByOid.TryGetValue(algOid, out SlhDsaParameters slhDsaParameters))
+            {
+                return GetSlhDsaPublicKey(slhDsaParameters, keyInfo.PublicKey);
+            }
             else
             {
                 throw new SecurityUtilityException("algorithm identifier in public key not recognised: " + algOid);
+            }
+        }
+
+        internal static MLDsaPublicKeyParameters GetMLDsaPublicKey(MLDsaParameters parameters, DerBitString publicKey)
+        {
+            // TODO[pqc] Rework this, use length to guide possible format(s)?
+
+            var publicKeyOctets = publicKey.GetOctets();
+
+            try
+            {
+                Asn1Object obj = Asn1Object.FromByteArray(publicKeyOctets);
+                if (obj is Asn1Sequence keySeq)
+                {
+                    return new MLDsaPublicKeyParameters(
+                        parameters,
+                        Asn1OctetString.GetInstance(keySeq[0]).GetOctets(),
+                        Asn1OctetString.GetInstance(keySeq[1]).GetOctets());
+                }
+                else
+                {
+                    byte[] encKey = Asn1OctetString.GetInstance(obj).GetOctets();
+
+                    return new MLDsaPublicKeyParameters(parameters, encKey);
+                }
+            }
+            catch (Exception)
+            {
+                return new MLDsaPublicKeyParameters(parameters, publicKeyOctets);
             }
         }
 
@@ -300,6 +337,24 @@ namespace Org.BouncyCastle.Security
         }
 #endif
 
+        internal static SlhDsaPublicKeyParameters GetSlhDsaPublicKey(SlhDsaParameters parameters, DerBitString publicKey)
+        {
+            // TODO[pqc] Rework this, use length to guide possible format(s)?
+
+            var publicKeyOctets = publicKey.GetOctets();
+
+            try
+            {
+                byte[] keyEnc = Asn1OctetString.GetInstance(publicKeyOctets).GetOctets();
+
+                return new SlhDsaPublicKeyParameters(parameters, Arrays.CopyOfRange(keyEnc, 4, keyEnc.Length));
+            }
+            catch (Exception)
+            {
+                return new SlhDsaPublicKeyParameters(parameters, publicKeyOctets);
+            }
+        }
+
         private static bool IsPkcsDHParam(Asn1Sequence seq)
         {
             if (seq.Count == 2)
@@ -317,7 +372,7 @@ namespace Org.BouncyCastle.Security
         private static DHPublicKeyParameters ReadPkcsDHParam(DerObjectIdentifier algOid,
             BigInteger y, Asn1Sequence seq)
         {
-            DHParameter para = new DHParameter(seq);
+            DHParameter para = DHParameter.GetInstance(seq);
 
             BigInteger lVal = para.L;
             int l = lVal == null ? 0 : lVal.IntValue;

@@ -137,6 +137,9 @@ namespace Org.BouncyCastle.X509
 			return digestResult.Collect();
         }
 
+        internal static byte[] CalculateDigest(IDigestFactory digestFactory, byte[] buf) =>
+            CalculateDigest(digestFactory, buf, 0, buf.Length);
+
         internal static byte[] CalculateDigest(IDigestFactory digestFactory, byte[] buf, int off, int len)
         {
             var digestCalculator = digestFactory.CreateCalculator();
@@ -201,7 +204,7 @@ namespace Org.BouncyCastle.X509
 				hashAlgId,
 				new AlgorithmIdentifier(PkcsObjectIdentifiers.IdMgf1, hashAlgId),
 				new DerInteger(saltSize),
-				new DerInteger(1));
+				DerInteger.One);
 		}
 
         internal static DerBitString CollectDerBitString(IBlockResult result)

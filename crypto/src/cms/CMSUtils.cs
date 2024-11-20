@@ -4,7 +4,9 @@ using System.IO;
 
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Cms;
+using Org.BouncyCastle.Asn1.CryptoPro;
 using Org.BouncyCastle.Asn1.Ocsp;
+using Org.BouncyCastle.Asn1.Rosstandart;
 using Org.BouncyCastle.Asn1.Sec;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Asn1.X9;
@@ -20,7 +22,41 @@ namespace Org.BouncyCastle.Cms
 		// TODO Is there a .NET equivalent to this?
 //		private static readonly Runtime RUNTIME = Runtime.getRuntime();
 
-		internal static int MaximumMemory
+        private static readonly HashSet<DerObjectIdentifier> ECAlgorithms = new HashSet<DerObjectIdentifier>();
+        private static readonly HashSet<DerObjectIdentifier> GostAlgorithms = new HashSet<DerObjectIdentifier>();
+        private static readonly HashSet<DerObjectIdentifier> MqvAlgorithms = new HashSet<DerObjectIdentifier>();
+
+		static CmsUtilities()
+		{
+            ECAlgorithms.Add(X9ObjectIdentifiers.DHSinglePassStdDHSha1KdfScheme);
+            ECAlgorithms.Add(SecObjectIdentifiers.dhSinglePass_stdDH_sha224kdf_scheme);
+            ECAlgorithms.Add(SecObjectIdentifiers.dhSinglePass_stdDH_sha256kdf_scheme);
+            ECAlgorithms.Add(SecObjectIdentifiers.dhSinglePass_stdDH_sha384kdf_scheme);
+            ECAlgorithms.Add(SecObjectIdentifiers.dhSinglePass_stdDH_sha512kdf_scheme);
+            ECAlgorithms.Add(X9ObjectIdentifiers.DHSinglePassCofactorDHSha1KdfScheme);
+            ECAlgorithms.Add(SecObjectIdentifiers.dhSinglePass_cofactorDH_sha224kdf_scheme);
+            ECAlgorithms.Add(SecObjectIdentifiers.dhSinglePass_cofactorDH_sha256kdf_scheme);
+            ECAlgorithms.Add(SecObjectIdentifiers.dhSinglePass_cofactorDH_sha384kdf_scheme);
+            ECAlgorithms.Add(SecObjectIdentifiers.dhSinglePass_cofactorDH_sha512kdf_scheme);
+
+            GostAlgorithms.Add(CryptoProObjectIdentifiers.GostR3410x2001CryptoProESDH);
+            GostAlgorithms.Add(RosstandartObjectIdentifiers.id_tc26_agreement_gost_3410_12_256);
+            GostAlgorithms.Add(RosstandartObjectIdentifiers.id_tc26_agreement_gost_3410_12_512);
+
+            MqvAlgorithms.Add(X9ObjectIdentifiers.MqvSinglePassSha1KdfScheme);
+            MqvAlgorithms.Add(SecObjectIdentifiers.mqvSinglePass_sha224kdf_scheme);
+            MqvAlgorithms.Add(SecObjectIdentifiers.mqvSinglePass_sha256kdf_scheme);
+            MqvAlgorithms.Add(SecObjectIdentifiers.mqvSinglePass_sha384kdf_scheme);
+            MqvAlgorithms.Add(SecObjectIdentifiers.mqvSinglePass_sha512kdf_scheme);
+        }
+
+        internal static bool IsEC(DerObjectIdentifier oid) => ECAlgorithms.Contains(oid);
+
+        internal static bool IsGost(DerObjectIdentifier oid) => GostAlgorithms.Contains(oid);
+
+        internal static bool IsMqv(DerObjectIdentifier oid) => MqvAlgorithms.Contains(oid);
+
+        internal static int MaximumMemory
 		{
 			get
 			{
@@ -75,80 +111,6 @@ namespace Org.BouncyCastle.Cms
 		internal static byte[] StreamToByteArray(Stream inStream) => Streams.ReadAll(inStream);
 
 		internal static byte[] StreamToByteArray(Stream inStream, int limit) => Streams.ReadAllLimited(inStream, limit);
-
-		internal static List<Asn1TaggedObject> GetAttributeCertificatesFromStore(
-			IStore<X509V2AttributeCertificate> attrCertStore)
-		{
-			var result = new List<Asn1TaggedObject>();
-			if (attrCertStore != null)
-            {
-				foreach (var attrCert in attrCertStore.EnumerateMatches(null))
-				{
-					result.Add(new DerTaggedObject(false, 2, attrCert.AttributeCertificate));
-				}
-            }
-			return result;
-		}
-
-		internal static List<X509CertificateStructure> GetCertificatesFromStore(IStore<X509Certificate> certStore)
-		{
-			var result = new List<X509CertificateStructure>();
-			if (certStore != null)
-            {
-                foreach (var cert in certStore.EnumerateMatches(null))
-                {
-                    result.Add(cert.CertificateStructure);
-                }
-			}
-			return result;
-		}
-
-		internal static List<CertificateList> GetCrlsFromStore(IStore<X509Crl> crlStore)
-		{
-			var result = new List<CertificateList>();
-			if (crlStore != null)
-			{
-                foreach (var crl in crlStore.EnumerateMatches(null))
-                {
-                    result.Add(crl.CertificateList);
-				}
-			}
-			return result;
-		}
-
-        internal static List<Asn1TaggedObject> GetOtherRevocationInfosFromStore(
-			IStore<OtherRevocationInfoFormat> otherRevocationInfoStore)
-        {
-            var result = new List<Asn1TaggedObject>();
-            if (otherRevocationInfoStore != null)
-            {
-                foreach (var otherRevocationInfo in otherRevocationInfoStore.EnumerateMatches(null))
-                {
-                    ValidateOtherRevocationInfo(otherRevocationInfo);
-
-                    result.Add(new DerTaggedObject(false, 1, otherRevocationInfo));
-                }
-            }
-            return result;
-        }
-
-        internal static List<DerTaggedObject> GetOtherRevocationInfosFromStore(IStore<Asn1Encodable> otherRevInfoStore,
-            DerObjectIdentifier otherRevInfoFormat)
-        {
-			var result = new List<DerTaggedObject>();
-			if (otherRevInfoStore != null && otherRevInfoFormat != null)
-			{
-				foreach (var otherRevInfo in otherRevInfoStore.EnumerateMatches(null))
-				{
-                    var otherRevocationInfo = new OtherRevocationInfoFormat(otherRevInfoFormat, otherRevInfo);
-
-                    ValidateOtherRevocationInfo(otherRevocationInfo);
-
-                    result.Add(new DerTaggedObject(false, 1, otherRevocationInfo));
-				}
-			}
-			return result;
-        }
 
 		// TODO Clean up this method (which is not present in bc-java)
         internal static void AddDigestAlgs(Asn1EncodableVector digestAlgs, SignerInformation signer,
@@ -224,6 +186,94 @@ namespace Org.BouncyCastle.Cms
             return new Asn1.Cms.AttributeTable(DerSet.FromVector(v));
         }
 
+        internal static void CollectAttributeCertificate(List<Asn1Encodable> result,
+            X509V2AttributeCertificate attrCert)
+        {
+            result.Add(new DerTaggedObject(false, 2, attrCert.AttributeCertificate));
+        }
+
+        internal static void CollectAttributeCertificates(List<Asn1Encodable> result,
+            IStore<X509V2AttributeCertificate> attrCertStore)
+        {
+            if (attrCertStore != null)
+            {
+                foreach (var attrCert in attrCertStore.EnumerateMatches(null))
+                {
+                    CollectAttributeCertificate(result, attrCert);
+                }
+            }
+        }
+
+        internal static void CollectCertificate(List<Asn1Encodable> result, X509Certificate cert)
+        {
+            result.Add(cert.CertificateStructure);
+        }
+
+        internal static void CollectCertificates(List<Asn1Encodable> result, IStore<X509Certificate> certStore)
+        {
+            if (certStore != null)
+            {
+                foreach (var cert in certStore.EnumerateMatches(null))
+                {
+                    CollectCertificate(result, cert);
+                }
+            }
+        }
+
+        internal static void CollectCrl(List<Asn1Encodable> result, X509Crl crl)
+        {
+            result.Add(crl.CertificateList);
+        }
+
+        internal static void CollectCrls(List<Asn1Encodable> result, IStore<X509Crl> crlStore)
+        {
+            if (crlStore != null)
+            {
+                foreach (var crl in crlStore.EnumerateMatches(null))
+                {
+                    CollectCrl(result, crl);
+                }
+            }
+        }
+
+        internal static void CollectOtherRevocationInfo(List<Asn1Encodable> result,
+            OtherRevocationInfoFormat otherRevocationInfo)
+        {
+            ValidateOtherRevocationInfo(otherRevocationInfo);
+
+            result.Add(new DerTaggedObject(false, 1, otherRevocationInfo));
+        }
+
+        internal static void CollectOtherRevocationInfo(List<Asn1Encodable> result,
+            DerObjectIdentifier otherRevInfoFormat, Asn1Encodable otherRevInfo)
+        {
+            CollectOtherRevocationInfo(result, new OtherRevocationInfoFormat(otherRevInfoFormat, otherRevInfo));
+        }
+
+        internal static void CollectOtherRevocationInfos(List<Asn1Encodable> result,
+            IStore<OtherRevocationInfoFormat> otherRevocationInfoStore)
+        {
+            if (otherRevocationInfoStore != null)
+            {
+                foreach (var otherRevocationInfo in otherRevocationInfoStore.EnumerateMatches(null))
+                {
+                    CollectOtherRevocationInfo(result, otherRevocationInfo);
+                }
+            }
+        }
+
+        internal static void CollectOtherRevocationInfos(List<Asn1Encodable> result,
+            DerObjectIdentifier otherRevInfoFormat, IStore<Asn1Encodable> otherRevInfoStore)
+        {
+            if (otherRevInfoStore != null && otherRevInfoFormat != null)
+            {
+                foreach (var otherRevInfo in otherRevInfoStore.EnumerateMatches(null))
+                {
+                    CollectOtherRevocationInfo(result, otherRevInfoFormat, otherRevInfo);
+                }
+            }
+        }
+
         internal static void ValidateOtherRevocationInfo(OtherRevocationInfoFormat otherRevocationInfo)
         {
             if (CmsObjectIdentifiers.id_ri_ocsp_response.Equals(otherRevocationInfo.InfoFormat))
@@ -234,12 +284,5 @@ namespace Org.BouncyCastle.Cms
                     throw new ArgumentException("cannot add unsuccessful OCSP response to CMS SignedData");
             }
         }
-
-		internal static bool IsMqv(DerObjectIdentifier oid) =>
-			X9ObjectIdentifiers.MqvSinglePassSha1KdfScheme.Equals(oid) ||
-			SecObjectIdentifiers.mqvSinglePass_sha224kdf_scheme.Equals(oid) ||
-			SecObjectIdentifiers.mqvSinglePass_sha256kdf_scheme.Equals(oid) ||
-			SecObjectIdentifiers.mqvSinglePass_sha384kdf_scheme.Equals(oid) ||
-			SecObjectIdentifiers.mqvSinglePass_sha512kdf_scheme.Equals(oid);
     }
 }
